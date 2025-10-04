@@ -60,11 +60,12 @@ class profilePage : Fragment() {
         val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
 
 
-        lifecycleScope.launch(Dispatchers.Main) {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val snapshot = withContext(Dispatchers.IO) { userRef.get().await() }
                 val user = snapshot.getValue(Users::class.java)
-                if (user != null) {
+
+                if (user != null && isAdded && _binding != null) {
                     sessionManager.saveUser(user)
                     binding.username.text = "${user.firstname} ${user.lastname}"
                     binding.emailText.text = user.email
@@ -73,7 +74,6 @@ class profilePage : Fragment() {
                         "AdminProfile",
                         "Admin Data Loaded: ${user.firstname} ${user.lastname} - ${user.email}"
                     )
-
 
                     if (user.profilePic.isNotEmpty()) {
                         val bitmap = withContext(Dispatchers.IO) {
@@ -88,25 +88,31 @@ class profilePage : Fragment() {
                             }
                         }
 
-                        if (bitmap != null) {
-                            binding.profileImage.setImageBitmap(bitmap)
-                        } else {
-                            Glide.with(this@profilePage)
-                                .load(user.profilePic)
-                                .placeholder(R.drawable.default_profile)
-                                .into(binding.profileImage)
+                        if (_binding != null) {
+                            if (bitmap != null) {
+                                binding.profileImage.setImageBitmap(bitmap)
+                            } else {
+                                Glide.with(this@profilePage)
+                                    .load(user.profilePic)
+                                    .placeholder(R.drawable.default_profile)
+                                    .into(binding.profileImage)
+                            }
                         }
                     } else {
-                        binding.profileImage.setImageResource(R.drawable.default_profile)
+                        if (_binding != null) binding.profileImage.setImageResource(R.drawable.default_profile)
                     }
                 } else {
-                    binding.username.text = "Admin"
-                    binding.emailText.text = "No email found"
+                    if (_binding != null) {
+                        binding.username.text = "Admin"
+                        binding.emailText.text = "No email found"
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                binding.username.text = "Failed to load profile"
-                binding.emailText.text = ""
+                if (_binding != null) {
+                    binding.username.text = "Failed to load profile"
+                    binding.emailText.text = ""
+                }
             }
         }
 
@@ -126,6 +132,10 @@ class profilePage : Fragment() {
                 },
                 onCancel = {}
             )
+        }
+
+        binding.card1.setOnClickListener {
+            startActivity(Intent(requireContext(), AccountInfoPage::class.java))
         }
     }
 
