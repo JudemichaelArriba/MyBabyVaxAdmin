@@ -1,9 +1,7 @@
 package com.example.mybabyvaxadmin.pages
 
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.os.Bundle
-import android.util.Base64
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -31,6 +29,7 @@ class profilePage : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var auth: FirebaseAuth
+    private lateinit var sessionManager: SessionManager
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -47,73 +46,40 @@ class profilePage : Fragment() {
             ContextCompat.getColor(requireContext(), android.R.color.white)
 
         auth = FirebaseAuth.getInstance()
-        val currentUser = auth.currentUser
-        val sessionManager = SessionManager(requireContext())
+        sessionManager = SessionManager(requireContext())
 
-        if (currentUser == null) {
-            binding.username.text = "Unknown Admin"
-            binding.emailText.text = "Not available"
-            return
+
+        val cachedUser = sessionManager.getUser()
+        if (cachedUser != null) {
+            loadUser(cachedUser)
         }
 
-        val userId = currentUser.uid
-        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            val userRef =
+                FirebaseDatabase.getInstance().getReference("users").child(currentUser.uid)
 
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val snapshot = withContext(Dispatchers.IO) { userRef.get().await() }
-                val user = snapshot.getValue(Users::class.java)
-
-                if (user != null && isAdded && _binding != null) {
-                    sessionManager.saveUser(user)
-                    binding.username.text = "${user.firstname} ${user.lastname}"
-                    binding.emailText.text = user.email
-
-                    Log.d(
-                        "AdminProfile",
-                        "Admin Data Loaded: ${user.firstname} ${user.lastname} - ${user.email}"
-                    )
-
-                    if (user.profilePic.isNotEmpty()) {
-                        val bitmap = withContext(Dispatchers.IO) {
-                            try {
-                                if (user.profilePic.startsWith("/9j") || user.profilePic.contains("base64")) {
-                                    val imageBytes = Base64.decode(user.profilePic, Base64.DEFAULT)
-                                    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                                } else null
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                                null
-                            }
-                        }
-
-                        if (_binding != null) {
-                            if (bitmap != null) {
-                                binding.profileImage.setImageBitmap(bitmap)
-                            } else {
-                                Glide.with(this@profilePage)
-                                    .load(user.profilePic)
-                                    .placeholder(R.drawable.default_profile)
-                                    .into(binding.profileImage)
-                            }
-                        }
-                    } else {
-                        if (_binding != null) binding.profileImage.setImageResource(R.drawable.default_profile)
+            viewLifecycleOwner.lifecycleScope.launch {
+                val user: Users? = try {
+                    withContext(Dispatchers.IO) {
+                        val snapshot = userRef.get().await()
+                        snapshot.getValue(Users::class.java)
                     }
-                } else {
-                    if (_binding != null) {
-                        binding.username.text = "Admin"
-                        binding.emailText.text = "No email found"
-                    }
+                } catch (e: Exception) {
+                    Log.e("ProfilePage", "Failed to fetch user", e)
+                    null
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                if (_binding != null) {
-                    binding.username.text = "Failed to load profile"
-                    binding.emailText.text = ""
+
+                if (_binding != null && user != null) {
+                    sessionManager.saveUser(user)
+                    loadUser(user)
                 }
             }
+        } else if (_binding != null) {
+            binding.username.text = "Unknown Admin"
+            binding.emailText.text = "Not available"
+            binding.profileImage.setImageResource(R.drawable.default_profile)
         }
 
         binding.logout.setOnClickListener {
@@ -137,6 +103,21 @@ class profilePage : Fragment() {
         binding.card1.setOnClickListener {
             startActivity(Intent(requireContext(), AccountInfoPage::class.java))
         }
+    }
+
+    private fun loadUser(user: Users) {
+        binding.username.text = "${user.firstname} ${user.lastname}"
+        binding.emailText.text = user.email
+
+        val imageUrl =
+            if (user.profilePic.startsWith("/9j") || user.profilePic.contains("base64")) {
+                "data:image/jpeg;base64,${user.profilePic}"
+            } else user.profilePic
+
+        Glide.with(this)
+            .load(imageUrl)
+            .placeholder(R.drawable.default_profile)
+            .into(binding.profileImage)
     }
 
     override fun onDestroyView() {

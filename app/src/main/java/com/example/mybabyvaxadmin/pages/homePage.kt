@@ -1,8 +1,6 @@
 package com.example.mybabyvaxadmin.pages
 
-import android.graphics.BitmapFactory
 import android.os.Bundle
-import android.util.Base64
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -47,77 +45,67 @@ class homePage : Fragment() {
         auth = FirebaseAuth.getInstance()
         sessionManager = SessionManager(requireContext())
 
-        val currentUser = auth.currentUser
-        if (currentUser == null) {
-            binding.username.text = "No user found"
-            return
+        val cachedUser = sessionManager.getUser()
+        if (cachedUser != null) {
+
+            loadUser(cachedUser)
         }
 
-        val userId = currentUser.uid
-        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            val userRef =
+                FirebaseDatabase.getInstance().getReference("users").child(currentUser.uid)
 
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            val user: Users? = try {
-                withContext(Dispatchers.IO) {
-                    val snapshot = userRef.get().await()
-                    snapshot.getValue(Users::class.java)
-                }
-            } catch (e: Exception) {
-                Log.e("HomePage", "Failed to get user", e)
-                null
-            }
-
-
-            if (_binding == null) return@launch
-
-            if (user != null) {
-                sessionManager.saveUser(user)
-
-                val username = if (user.firstname.isNotEmpty() || user.lastname.isNotEmpty()) {
-                    "${user.firstname} ${user.lastname}"
-                } else {
-                    "Admin"
-                }
-                binding.username.text = username
-
-                if (user.profilePic.isNotEmpty()) {
-                    try {
-                        if (user.profilePic.startsWith("/9j") || user.profilePic.contains("base64")) {
-
-                            val bitmap = withContext(Dispatchers.IO) {
-                                try {
-                                    val imageBytes = Base64.decode(user.profilePic, Base64.DEFAULT)
-                                    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    null
-                                }
-                            }
-
-
-                            if (_binding != null) bitmap?.let {
-                                binding.profileImage.setImageBitmap(
-                                    it
-                                )
-                            }
-
-                        } else {
-                            Glide.with(this@homePage)
-                                .load(user.profilePic)
-                                .placeholder(R.drawable.default_profile)
-                                .into(binding.profileImage)
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        if (_binding != null) binding.profileImage.setImageResource(R.drawable.default_profile)
+            viewLifecycleOwner.lifecycleScope.launch {
+                val user: Users? = try {
+                    withContext(Dispatchers.IO) {
+                        val snapshot = userRef.get().await()
+                        snapshot.getValue(Users::class.java)
                     }
-                } else {
-                    binding.profileImage.setImageResource(R.drawable.default_profile)
+                } catch (e: Exception) {
+                    Log.e("HomePage", "Failed to get user", e)
+                    null
                 }
-            } else {
-                binding.username.text = "Unknown Admin"
+
+                if (_binding == null || user == null) return@launch
+
+
+                sessionManager.saveUser(user)
+                loadUser(user)
             }
+        } else {
+            binding.username.text = "No user found"
+            binding.profileImage.setImageResource(R.drawable.default_profile)
+        }
+    }
+
+    private fun loadUser(user: Users) {
+        val username = if (user.firstname.isNotEmpty() || user.lastname.isNotEmpty()) {
+            "${user.firstname} ${user.lastname}"
+        } else {
+            "Admin"
+        }
+        binding.username.text = username
+
+        if (user.profilePic.isNotEmpty()) {
+            try {
+                val image =
+                    if (user.profilePic.startsWith("/9j") || user.profilePic.contains("base64")) {
+
+                        "data:image/jpeg;base64,${user.profilePic}"
+                    } else user.profilePic
+
+                Glide.with(this)
+                    .load(image)
+                    .placeholder(R.drawable.default_profile)
+                    .into(binding.profileImage)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                binding.profileImage.setImageResource(R.drawable.default_profile)
+            }
+        } else {
+            binding.profileImage.setImageResource(R.drawable.default_profile)
         }
     }
 
