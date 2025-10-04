@@ -1,60 +1,136 @@
 package com.example.mybabyvaxadmin.pages
 
+import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.util.Base64
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
+import com.example.mybabyvaxadmin.MainActivity
 import com.example.mybabyvaxadmin.R
+import com.example.mybabyvaxadmin.components.DialogHelper
+import com.example.mybabyvaxadmin.databinding.FragmentProfilePageBinding
+import com.example.mybabyvaxadmin.models.Users
+import com.example.iptfinal.services.SessionManager
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-/**
- * A simple [Fragment] subclass.
- * Use the [profilePage.newInstance] factory method to
- * create an instance of this fragment.
- */
 class profilePage : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
-    }
+    private var _binding: FragmentProfilePageBinding? = null
+    private val binding get() = _binding!!
+
+    private lateinit var auth: FirebaseAuth
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_profile_page, container, false)
+    ): View {
+        _binding = FragmentProfilePageBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment profilePage.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            profilePage().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        requireActivity().window.statusBarColor =
+            ContextCompat.getColor(requireContext(), android.R.color.white)
+
+        auth = FirebaseAuth.getInstance()
+        val currentUser = auth.currentUser
+        val sessionManager = SessionManager(requireContext())
+
+        if (currentUser == null) {
+            binding.username.text = "Unknown Admin"
+            binding.emailText.text = "Not available"
+            return
+        }
+
+        val userId = currentUser.uid
+        val userRef = FirebaseDatabase.getInstance().getReference("users").child(userId)
+
+
+        lifecycleScope.launch(Dispatchers.Main) {
+            try {
+                val snapshot = withContext(Dispatchers.IO) { userRef.get().await() }
+                val user = snapshot.getValue(Users::class.java)
+                if (user != null) {
+                    sessionManager.saveUser(user)
+                    binding.username.text = "${user.firstname} ${user.lastname}"
+                    binding.emailText.text = user.email
+
+                    Log.d(
+                        "AdminProfile",
+                        "Admin Data Loaded: ${user.firstname} ${user.lastname} - ${user.email}"
+                    )
+
+
+                    if (user.profilePic.isNotEmpty()) {
+                        val bitmap = withContext(Dispatchers.IO) {
+                            try {
+                                if (user.profilePic.startsWith("/9j") || user.profilePic.contains("base64")) {
+                                    val imageBytes = Base64.decode(user.profilePic, Base64.DEFAULT)
+                                    BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                                } else null
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                null
+                            }
+                        }
+
+                        if (bitmap != null) {
+                            binding.profileImage.setImageBitmap(bitmap)
+                        } else {
+                            Glide.with(this@profilePage)
+                                .load(user.profilePic)
+                                .placeholder(R.drawable.default_profile)
+                                .into(binding.profileImage)
+                        }
+                    } else {
+                        binding.profileImage.setImageResource(R.drawable.default_profile)
+                    }
+                } else {
+                    binding.username.text = "Admin"
+                    binding.emailText.text = "No email found"
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                binding.username.text = "Failed to load profile"
+                binding.emailText.text = ""
             }
+        }
+
+        binding.logout.setOnClickListener {
+            DialogHelper.showWarning(
+                requireContext(),
+                "Logout",
+                "Are you sure you want to log out?",
+                onConfirm = {
+                    auth.signOut()
+                    sessionManager.clearSession()
+
+                    val intent = Intent(requireActivity(), MainActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    requireActivity().finish()
+                },
+                onCancel = {}
+            )
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }
