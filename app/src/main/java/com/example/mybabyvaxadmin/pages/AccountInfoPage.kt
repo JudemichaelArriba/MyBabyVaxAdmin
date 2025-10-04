@@ -105,9 +105,9 @@ class AccountInfoPage : AppCompatActivity() {
         }
 
         binding.editBtn.setOnClickListener {
-//            val intent = Intent(this, EditProfile::class.java)
-//            startActivity(intent)
-//            finish()
+            val intent = Intent(this, EditProfile::class.java)
+            startActivity(intent)
+            finish()
         }
 
         binding.backButton.setOnClickListener {
