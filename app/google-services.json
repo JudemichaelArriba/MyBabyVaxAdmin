@@ -1,0 +1,85 @@
+{
+  "project_info": {
+    "project_number": "1048026606726",
+    "firebase_url": "https://mybabyvax-3d5cc-default-rtdb.firebaseio.com",
+    "project_id": "mybabyvax-3d5cc",
+    "storage_bucket": "mybabyvax-3d5cc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1048026606726:android:6581b1eb634d0d30efb507",
+        "android_client_info": {
+          "package_name": "com.example.iptfinal"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1048026606726-73uj2ermjha2muebtse1q3j5njv9h7pl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.iptfinal",
+            "certificate_hash": "827ac79734c05c75b3babbca588e44c13405536e"
+          }
+        },
+        {
+          "client_id": "1048026606726-f1aamm7prssgq41oroqoa5u029e88l2j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBomXWXNI9niVVhs7SFfvd30iUB_Q_M8GM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1048026606726-f1aamm7prssgq41oroqoa5u029e88l2j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1048026606726:android:06939f3f3ff3a497efb507",
+        "android_client_info": {
+          "package_name": "com.example.mybabyvaxadmin"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1048026606726-k6bibc8qja36jsdfrr0ssbglesin2rfl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mybabyvaxadmin",
+            "certificate_hash": "827ac79734c05c75b3babbca588e44c13405536e"
+          }
+        },
+        {
+          "client_id": "1048026606726-f1aamm7prssgq41oroqoa5u029e88l2j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBomXWXNI9niVVhs7SFfvd30iUB_Q_M8GM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1048026606726-f1aamm7prssgq41oroqoa5u029e88l2j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
