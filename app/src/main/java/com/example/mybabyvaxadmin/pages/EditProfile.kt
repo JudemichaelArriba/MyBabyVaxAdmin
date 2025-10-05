@@ -164,7 +164,7 @@ class EditProfile : AppCompatActivity() {
                 DialogHelper.showWarning(
                     this@EditProfile,
                     "No Changes Detected",
-                    "You haven’t modified any profile information."
+                    "You haven’t change any profile information."
                 )
                 return@launch
             }
