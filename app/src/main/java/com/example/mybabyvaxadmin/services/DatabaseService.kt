@@ -2,15 +2,21 @@ package com.example.iptfinal.services
 
 import android.util.Log
 import com.example.iptfinal.interfaces.InterfaceClass
+import com.example.mybabyvaxadmin.models.Dose
 
 import com.example.mybabyvaxadmin.models.Users
+import com.example.mybabyvaxadmin.models.Vaccine
 import com.google.firebase.database.*
 
 class DatabaseService {
 
-    private val databasePuroks: DatabaseReference = FirebaseDatabase.getInstance().getReference("Locations/Monkayo/Union")
-    private val databaseUsers: DatabaseReference = FirebaseDatabase.getInstance().getReference("users")
+    private val databasePuroks: DatabaseReference =
+        FirebaseDatabase.getInstance().getReference("Locations/Monkayo/Union")
+    private val databaseUsers: DatabaseReference =
+        FirebaseDatabase.getInstance().getReference("users")
 
+    private val databaseVaccines: DatabaseReference =
+        FirebaseDatabase.getInstance().getReference("vaccines")
 
     fun fetchPuroks(callback: InterfaceClass.PurokCallback) {
         databasePuroks.addListenerForSingleValueEvent(object : ValueEventListener {
@@ -60,6 +66,45 @@ class DatabaseService {
             }
             .addOnFailureListener { e ->
                 callback.onError("Failed to update profile: ${e.message}")
+            }
+    }
+
+
+    fun addVaccine(vaccine: Vaccine, callback: InterfaceClass.StatusCallbackWithId) {
+        val vaccineId = databaseVaccines.push().key
+
+        if (vaccineId == null) {
+            callback.onFailure("Failed to generate vaccine ID.")
+            return
+        }
+
+        vaccine.id = vaccineId
+        databaseVaccines.child(vaccineId).setValue(vaccine)
+            .addOnSuccessListener {
+                callback.onSuccess("Vaccine saved successfully!", vaccineId)
+            }
+            .addOnFailureListener { e ->
+                callback.onFailure("Failed to save vaccine: ${e.message}")
+            }
+    }
+
+
+    fun addVaccineDosage(vaccineId: String, dose: Dose, callback: InterfaceClass.StatusCallback) {
+        val doseId = databaseVaccines.child(vaccineId).child("doses").push().key
+
+        if (doseId.isNullOrEmpty()) {
+            callback.onError("Failed to generate dose ID.")
+            return
+        }
+
+        val doseWithId = dose.copy(id = doseId)
+
+        databaseVaccines.child(vaccineId).child("doses").child(doseId).setValue(doseWithId)
+            .addOnSuccessListener {
+                callback.onSuccess("Successfully added the dose.")
+            }
+            .addOnFailureListener { exception ->
+                callback.onError("Failed to add dose: ${exception.message}")
             }
     }
 

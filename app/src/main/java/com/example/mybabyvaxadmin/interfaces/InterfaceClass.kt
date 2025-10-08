@@ -21,5 +21,10 @@ interface InterfaceClass {
         fun onError(message: String)
     }
 
+    interface StatusCallbackWithId {
+        fun onSuccess(message: String, id: String)
+        fun onFailure(message: String)
+    }
+
 
 }
