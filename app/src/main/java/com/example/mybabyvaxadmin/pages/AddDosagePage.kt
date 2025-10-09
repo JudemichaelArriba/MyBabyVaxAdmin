@@ -3,6 +3,7 @@ package com.example.mybabyvaxadmin.pages
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -12,6 +13,8 @@ import androidx.core.view.WindowInsetsCompat
 import com.example.iptfinal.interfaces.InterfaceClass
 import com.example.iptfinal.services.DatabaseService
 import com.example.mybabyvaxadmin.R
+import com.example.mybabyvaxadmin.components.DialogHelper
+import com.example.mybabyvaxadmin.components.bottomNav
 import com.example.mybabyvaxadmin.databinding.ActivityAddDosagePageBinding
 import com.example.mybabyvaxadmin.models.Dose
 import com.example.mybabyvaxadmin.models.Vaccine
@@ -37,7 +40,9 @@ class AddDosagePage : AppCompatActivity() {
         loadVaccineFromIntent()
         populateSpinner()
 
-
+        binding.backButton.setOnClickListener {
+            finish()
+        }
 
         binding.saveDoseButton.setOnClickListener {
             addDoseToList()
@@ -99,7 +104,7 @@ class AddDosagePage : AppCompatActivity() {
 
         databaseService.addVaccine(vaccine, object : InterfaceClass.StatusCallbackWithId {
             override fun onSuccess(message: String, vaccineId: String) {
-                
+                binding.loadingOverlay.visibility = View.VISIBLE
                 for (dose in doseList) {
 
                     /**
@@ -110,14 +115,27 @@ class AddDosagePage : AppCompatActivity() {
                         dose,
                         object : InterfaceClass.StatusCallback {
                             override fun onSuccess(message: String) {
-                                Toast.makeText(this@AddDosagePage, message, Toast.LENGTH_SHORT)
-                                    .show()
-                                finish()
+                                binding.loadingOverlay.visibility = View.GONE
+
+                                DialogHelper.showSuccess(
+                                    this@AddDosagePage,
+                                    "Successful",
+                                    "Vaccine is successfully added!"
+                                ) {
+                                    finish()
+                                }
+
+
                             }
 
                             override fun onError(error: String) {
+                                binding.loadingOverlay.visibility = View.GONE
                                 Log.d("Failed adding dosage", error)
-                                Toast.makeText(this@AddDosagePage, error, Toast.LENGTH_SHORT).show()
+                                DialogHelper.showWarning(
+                                    this@AddDosagePage,
+                                    "Error",
+                                    error
+                                )
                             }
                         })
                 }

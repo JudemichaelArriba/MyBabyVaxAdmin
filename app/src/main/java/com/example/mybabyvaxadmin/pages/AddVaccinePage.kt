@@ -31,6 +31,9 @@ class AddVaccinePage : AppCompatActivity() {
             insets
         }
         spinnersValues()
+        binding.backButton.setOnClickListener {
+            finish()
+        }
 
         binding.saveButton.setOnClickListener {
             setupSaveButton()
