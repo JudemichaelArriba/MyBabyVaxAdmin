@@ -14,10 +14,14 @@ import com.example.iptfinal.services.DatabaseService
 import com.example.mybabyvaxadmin.R
 import com.example.mybabyvaxadmin.databinding.ActivityAddDosagePageBinding
 import com.example.mybabyvaxadmin.models.Dose
+import com.example.mybabyvaxadmin.models.Vaccine
 
 class AddDosagePage : AppCompatActivity() {
+    private val doseList = mutableListOf<Dose>()
+    private lateinit var vaccine: Vaccine
     private val databaseService = DatabaseService()
     private lateinit var binding: ActivityAddDosagePageBinding
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,12 +29,21 @@ class AddDosagePage : AppCompatActivity() {
 
         binding = ActivityAddDosagePageBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.AddDosagePage)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+        loadVaccineFromIntent()
         populateSpinner()
 
 
 
         binding.saveDoseButton.setOnClickListener {
-            saveFunction()
+            addDoseToList()
+        }
+        binding.finishButton.setOnClickListener {
+            finalizedSave()
         }
     }
 
@@ -48,41 +61,115 @@ class AddDosagePage : AppCompatActivity() {
 
     }
 
-    /**
-     * save to the database the dose
+
+    /** Load info from vaccine page
+     *
      */
-    private fun saveFunction() {
-        val vaccineId = intent.getStringExtra("vaccineId") ?: return
-        Log.d("vaccineId", vaccineId)
-        val doseName = binding.doseNameEditText.text.toString().trim()
-        val interval = binding.intervalNumberEditText.text.toString().trim()
-        val intervalUnit = binding.intervalUnitSpinner.selectedItem.toString().trim()
-        val doseDescription = binding.descriptionEditText.text.toString().trim()
 
-        if (doseName.isEmpty() || interval.isEmpty() || intervalUnit.isEmpty() || doseDescription.isEmpty()) {
-            Toast.makeText(this, "Please fill out all required fields.", Toast.LENGTH_SHORT)
-                .show()
-            return
-        }
-        val dose = Dose(
+    private fun loadVaccineFromIntent() {
+        vaccine = Vaccine(
             id = null,
-            name = doseName,
-            intervalNumber = interval.toInt(),
-            intervalUnit = intervalUnit,
-            description = doseDescription
-
+            name = intent.getStringExtra("vaccineName") ?: "",
+            description = intent.getStringExtra("vaccineDescription") ?: "",
+            route = intent.getStringExtra("vaccineRoute") ?: "",
+            type = intent.getStringExtra("vaccineType") ?: "",
+            sideEffects = intent.getStringExtra("vaccineSideEffects") ?: "",
+            eligibleAge = intent.getIntExtra("vaccineEligibleAge", 0),
+            ageUnit = intent.getStringExtra("vaccineAgeUnit") ?: "",
+            schedule = intent.getStringExtra("vaccineSchedule") ?: "",
+            hasDosage = true
         )
-        databaseService.addVaccineDosage(vaccineId, dose, object : InterfaceClass.StatusCallback {
-            override fun onSuccess(message: String) {
-                Toast.makeText(this@AddDosagePage, message, Toast.LENGTH_SHORT).show()
-                finish()
+    }
+
+
+    /**
+     * For overall save on database both vaccine and doses
+     */
+
+    private fun finalizedSave() {
+        if (doseList.isEmpty()) {
+            Toast.makeText(this, "Please add at least one dose.", Toast.LENGTH_SHORT).show()
+            return
+
+        }
+
+        /**
+         * calling function for saving vaccine
+         */
+
+        databaseService.addVaccine(vaccine, object : InterfaceClass.StatusCallbackWithId {
+            override fun onSuccess(message: String, vaccineId: String) {
+                
+                for (dose in doseList) {
+
+                    /**
+                     * calling function for saving doses
+                     */
+                    databaseService.addVaccineDosage(
+                        vaccineId,
+                        dose,
+                        object : InterfaceClass.StatusCallback {
+                            override fun onSuccess(message: String) {
+                                Toast.makeText(this@AddDosagePage, message, Toast.LENGTH_SHORT)
+                                    .show()
+                                finish()
+                            }
+
+                            override fun onError(error: String) {
+                                Log.d("Failed adding dosage", error)
+                                Toast.makeText(this@AddDosagePage, error, Toast.LENGTH_SHORT).show()
+                            }
+                        })
+                }
+
             }
 
-            override fun onError(error: String) {
+            override fun onFailure(error: String) {
+                Log.d("Failed adding vaccine", error)
                 Toast.makeText(this@AddDosagePage, error, Toast.LENGTH_SHORT).show()
             }
-
         })
+
+
+    }
+
+
+    /**
+     * Add the doses on the list function
+     */
+    private fun addDoseToList() {
+
+        binding.apply {
+            val name = binding.doseNameEditText.text.toString().trim()
+            val interval = binding.intervalNumberEditText.text.toString().trim()
+            val unit = binding.intervalUnitSpinner.selectedItem.toString().trim()
+            val desc = binding.descriptionEditText.text.toString().trim()
+
+            if (name.isEmpty() || interval.isEmpty() || desc.isEmpty()) {
+                Toast.makeText(
+                    this@AddDosagePage,
+                    "Please fill out all required fields.",
+                    Toast.LENGTH_SHORT
+                )
+                    .show()
+                return
+            }
+
+
+            val dose = Dose(null, name, interval.toInt(), unit, desc)
+            doseList.add(dose)
+
+            Toast.makeText(
+                this@AddDosagePage,
+                "Dose added! (${doseList.size} total)",
+                Toast.LENGTH_SHORT
+            ).show()
+            binding.doseNameEditText.text?.clear()
+            binding.intervalNumberEditText.text?.clear()
+            binding.descriptionEditText.text?.clear()
+
+        }
+
 
     }
 

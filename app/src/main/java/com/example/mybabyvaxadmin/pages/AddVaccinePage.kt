@@ -25,7 +25,11 @@ class AddVaccinePage : AppCompatActivity() {
         binding = ActivityAddVaccinePageBinding.inflate(layoutInflater)
 
         setContentView(binding.root)
-
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.AddVaccinePage)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
         spinnersValues()
 
         binding.saveButton.setOnClickListener {
@@ -107,30 +111,40 @@ class AddVaccinePage : AppCompatActivity() {
             hasDosage = hasDosage
         )
 
-        /** database call form the databaseservice class to add a vaccine
-         *
-         */
-        databaseServices.addVaccine(vaccine, object : InterfaceClass.StatusCallbackWithId {
-            override fun onSuccess(message: String, id: String) {
-                Toast.makeText(this@AddVaccinePage, message, Toast.LENGTH_SHORT)
-                    .show()
 
-                if (hasDosage) {
-                    val intent = Intent(this@AddVaccinePage, AddDosagePage::class.java)
-                    intent.putExtra("vaccineId", vaccine.id)
-                    intent.putExtra("vaccineName", name)
-                    startActivity(intent)
-                } else {
+
+        if (hasDosage) {
+            val intent = Intent(this@AddVaccinePage, AddDosagePage::class.java)
+            intent.putExtra("vaccineName", vaccine.name)
+            intent.putExtra("vaccineDescription", vaccine.description)
+            intent.putExtra("vaccineRoute", vaccine.route)
+            intent.putExtra("vaccineType", vaccine.type)
+            intent.putExtra("vaccineSideEffects", vaccine.sideEffects)
+            intent.putExtra("vaccineEligibleAge", vaccine.eligibleAge)
+            intent.putExtra("vaccineAgeUnit", vaccine.ageUnit)
+            intent.putExtra("vaccineSchedule", vaccine.schedule)
+            startActivity(intent)
+        } else {
+            /** database call form the databaseservice class to add a vaccine
+             *
+             */
+            databaseServices.addVaccine(vaccine, object : InterfaceClass.StatusCallbackWithId {
+                override fun onSuccess(message: String, id: String) {
+                    Toast.makeText(this@AddVaccinePage, message, Toast.LENGTH_SHORT)
+                        .show()
+
                     finish()
                 }
-            }
 
-            override fun onFailure(error: String) {
-                Toast.makeText(this@AddVaccinePage, error, Toast.LENGTH_SHORT).show()
-            }
+                override fun onFailure(error: String) {
+                    Toast.makeText(this@AddVaccinePage, error, Toast.LENGTH_SHORT).show()
+                }
 
 
-        })
+            })
+
+
+        }
 
 
     }
