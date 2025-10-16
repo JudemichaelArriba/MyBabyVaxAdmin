@@ -56,7 +56,7 @@ class AddDosagePage : AppCompatActivity() {
      * populate the spinner with string list
      */
     private fun populateSpinner() {
-        val intervalOptions = listOf("Days", "Weeks", "Months")
+        val intervalOptions = listOf("Days", "Weeks", "Months", "Year")
         val adapter = ArrayAdapter(
             this@AddDosagePage,
             android.R.layout.simple_spinner_dropdown_item,
@@ -79,9 +79,9 @@ class AddDosagePage : AppCompatActivity() {
             route = intent.getStringExtra("vaccineRoute") ?: "",
             type = intent.getStringExtra("vaccineType") ?: "",
             sideEffects = intent.getStringExtra("vaccineSideEffects") ?: "",
-            eligibleAge = intent.getIntExtra("vaccineEligibleAge", 0),
+            eligibleAge = intent.getDoubleExtra("vaccineEligibleAge", 0.0),
             ageUnit = intent.getStringExtra("vaccineAgeUnit") ?: "",
-            schedule = intent.getStringExtra("vaccineSchedule") ?: "",
+
             hasDosage = true
         )
     }
@@ -174,7 +174,7 @@ class AddDosagePage : AppCompatActivity() {
             }
 
 
-            val dose = Dose(null, name, interval.toInt(), unit, desc)
+            val dose = Dose(null, name, interval.toDouble(), unit, desc)
             doseList.add(dose)
 
             Toast.makeText(

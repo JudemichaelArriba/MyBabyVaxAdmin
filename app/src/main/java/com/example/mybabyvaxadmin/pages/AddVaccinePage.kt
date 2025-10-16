@@ -54,8 +54,7 @@ class AddVaccinePage : AppCompatActivity() {
             "Other"
         )
         val ageUnitOptions = listOf("Days", "Weeks", "Months", "Years")
-        val scheduleOptions =
-            listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
 
         binding.apply {
 
@@ -70,11 +69,7 @@ class AddVaccinePage : AppCompatActivity() {
                 android.R.layout.simple_spinner_dropdown_item,
                 ageUnitOptions
             )
-            scheduleSpinner.adapter = ArrayAdapter(
-                this@AddVaccinePage,
-                android.R.layout.simple_spinner_dropdown_item,
-                scheduleOptions
-            )
+
         }
 
     }
@@ -93,7 +88,7 @@ class AddVaccinePage : AppCompatActivity() {
         val sideEffects = binding.sideEffectsEditText.text.toString().trim()
         val eligibleAge = binding.eligibleAgeEditText.text.toString().trim()
         val ageUnit = binding.ageUnitSpinner.selectedItem.toString()
-        val schedule = binding.scheduleSpinner.selectedItem.toString()
+
         val hasDosage = binding.hasDosageCheckBox.isChecked
 
         if (name.isEmpty() || description.isEmpty() || route.isEmpty()) {
@@ -108,9 +103,8 @@ class AddVaccinePage : AppCompatActivity() {
             route = route,
             type = type,
             sideEffects = sideEffects,
-            eligibleAge = eligibleAge.toIntOrNull(),
+            eligibleAge = eligibleAge.toDouble(),
             ageUnit = ageUnit,
-            schedule = schedule,
             hasDosage = hasDosage
         )
 
@@ -125,7 +119,7 @@ class AddVaccinePage : AppCompatActivity() {
             intent.putExtra("vaccineSideEffects", vaccine.sideEffects)
             intent.putExtra("vaccineEligibleAge", vaccine.eligibleAge)
             intent.putExtra("vaccineAgeUnit", vaccine.ageUnit)
-            intent.putExtra("vaccineSchedule", vaccine.schedule)
+
             startActivity(intent)
         } else {
             /** database call form the databaseservice class to add a vaccine

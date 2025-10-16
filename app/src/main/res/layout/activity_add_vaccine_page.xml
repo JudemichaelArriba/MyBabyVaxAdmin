@@ -186,7 +186,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Eligible Age"
-                android:inputType="number" />
+                android:inputType="numberDecimal" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <Spinner
@@ -208,28 +208,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/eligibleAgeLayout" />
 
-        <TextView
-            android:id="@+id/scheduleLabel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="24dp"
-            android:text="Vaccine Schedule (Available Day)"
-            android:textColor="@color/mainColor"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/hasDosageCheckBox" />
 
-        <Spinner
-            android:id="@+id/scheduleSpinner"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="8dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/scheduleLabel" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/saveButton"
@@ -245,7 +224,7 @@
             app:cornerRadius="12dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/scheduleSpinner" />
+            app:layout_constraintTop_toBottomOf="@+id/hasDosageCheckBox" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>
