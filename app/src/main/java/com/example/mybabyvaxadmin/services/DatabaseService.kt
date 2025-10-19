@@ -2,6 +2,7 @@ package com.example.iptfinal.services
 
 import android.util.Log
 import com.example.iptfinal.interfaces.InterfaceClass
+import com.example.mybabyvaxadmin.models.Baby
 import com.example.mybabyvaxadmin.models.Dose
 import com.example.mybabyvaxadmin.models.MergedSchedule
 
@@ -118,8 +119,7 @@ class DatabaseService {
                 for (userSnap in snapshot.children) {
                     val babiesSnap = userSnap.child("babies")
                     for (babySnap in babiesSnap.children) {
-                        val babyName =
-                            babySnap.child("fullName").getValue(String::class.java) ?: "Unknown"
+                        val babyId = babySnap.child("id").getValue(String::class.java) ?: continue
                         val schedulesSnap = babySnap.child("schedules")
 
                         for (vaccineSnap in schedulesSnap.children) {
@@ -136,9 +136,11 @@ class DatabaseService {
                                 val date = doseSnap.child("date").getValue(String::class.java) ?: ""
                                 val doseName =
                                     doseSnap.child("doseName").getValue(String::class.java) ?: ""
+                                val visible =
+                                    doseSnap.child("visible").getValue(Boolean::class.java) ?: true
 
 
-                                if (!completed && !activeDoseFound) {
+                                if (!completed && !activeDoseFound && visible) {
                                     activeDoseFound = true
 
                                     if (date.isNotEmpty() && vaccineName.isNotEmpty() && doseName.isNotEmpty()) {
@@ -150,12 +152,14 @@ class DatabaseService {
                                                 date = date,
                                                 vaccineName = vaccineName,
                                                 doseName = doseName,
-                                                babyNames = mutableListOf(babyName)
+                                                babyIds = mutableListOf(babyId)
                                             )
                                         } else {
-                                            val updatedNames = existing.babyNames.toMutableList()
-                                            updatedNames.add(babyName)
-                                            mergedMap[key] = existing.copy(babyNames = updatedNames)
+                                            val updatedIds = existing.babyIds.toMutableList()
+                                            if (!updatedIds.contains(babyId)) {
+                                                updatedIds.add(babyId)
+                                            }
+                                            mergedMap[key] = existing.copy(babyIds = updatedIds)
                                         }
                                     }
                                 }
@@ -177,5 +181,34 @@ class DatabaseService {
         })
     }
 
+    fun fetchBabyById(babyId: String, callback: InterfaceClass.BabyCallback) {
+        databaseUsers.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                var foundBaby: Baby? = null
+
+                for (userSnap in snapshot.children) {
+                    val babiesSnap = userSnap.child("babies")
+                    for (babySnap in babiesSnap.children) {
+                        val id = babySnap.child("id").getValue(String::class.java)
+                        if (id == babyId) {
+                            foundBaby = babySnap.getValue(Baby::class.java)
+                            break
+                        }
+                    }
+                    if (foundBaby != null) break
+                }
+
+                if (foundBaby != null) {
+                    callback.onBabyLoaded(foundBaby)
+                } else {
+                    callback.onError("Baby not found with ID: $babyId")
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback.onError(error.message)
+            }
+        })
+    }
 
 }

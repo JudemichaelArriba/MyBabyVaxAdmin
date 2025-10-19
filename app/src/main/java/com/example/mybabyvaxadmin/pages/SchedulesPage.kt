@@ -1,6 +1,7 @@
 package com.example.mybabyvaxadmin.pages
 
 import android.animation.ValueAnimator
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -42,8 +43,16 @@ class SchedulesPage : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         adapter = ScheduleAdapter(emptyList()) { schedule ->
-            Toast.makeText(this, "Clicked ${schedule.vaccineName}", Toast.LENGTH_SHORT).show()
+
+            val intent = Intent(this, ScheduleInfoPage::class.java).apply {
+                putExtra("vaccineName", schedule.vaccineName)
+                putExtra("doseName", schedule.doseName)
+                putExtra("date", schedule.date)
+                putStringArrayListExtra("babyIds", ArrayList(schedule.babyIds))
+            }
+            startActivity(intent)
         }
+
         binding.scheduleRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.scheduleRecyclerView.adapter = adapter
     }

@@ -1,6 +1,7 @@
 package com.example.iptfinal.interfaces
 
 
+import com.example.mybabyvaxadmin.models.Baby
 import com.example.mybabyvaxadmin.models.MergedSchedule
 import com.example.mybabyvaxadmin.models.Users
 
@@ -30,6 +31,11 @@ interface InterfaceClass {
     interface MergedScheduleCallback {
         fun onMergedSchedulesLoaded(schedules: List<MergedSchedule>)
         fun onError(error: String)
+    }
+
+    interface BabyCallback {
+        fun onBabyLoaded(baby: Baby)
+        fun onError(message: String)
     }
 
 }
