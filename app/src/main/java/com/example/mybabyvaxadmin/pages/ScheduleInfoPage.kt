@@ -54,9 +54,13 @@ class ScheduleInfoPage : AppCompatActivity() {
             return
         }
 
+        runOnUiThread {
+            binding.loading.visibility = View.VISIBLE
+        }
         val babies = mutableListOf<Baby>()
 
         lifecycleScope.launch(Dispatchers.IO) {
+
             var completedCount = 0
 
             for (babyId in babyIds) {
@@ -82,6 +86,7 @@ class ScheduleInfoPage : AppCompatActivity() {
 
     private fun updateUI(babies: List<Baby>) {
         lifecycleScope.launch(Dispatchers.Main) {
+            binding.loading.visibility = View.GONE
             if (babies.isEmpty()) {
                 Toast.makeText(this@ScheduleInfoPage, "No baby data found", Toast.LENGTH_SHORT)
                     .show()

@@ -32,7 +32,6 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:padding="16dp"
-
                 android:paddingBottom="8dp">
 
                 <ImageView
@@ -58,6 +57,7 @@
                     android:layout_width="48dp"
                     android:layout_height="1dp" />
             </LinearLayout>
+
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/vaccineCard"
@@ -109,7 +109,6 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnGenerateQR"
                 android:layout_width="match_parent"
@@ -145,6 +144,17 @@
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
                 android:padding="8dp" />
+
+
+            <ProgressBar
+                android:id="@+id/loading"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:layout_marginTop="16dp"
+                android:indeterminate="true"
+                android:indeterminateTint="@color/mainColor"
+                android:visibility="gone" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
