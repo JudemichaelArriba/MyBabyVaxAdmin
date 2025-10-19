@@ -28,12 +28,15 @@ import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.hbb20.CountryCodePicker
 
 class EditProfile : AppCompatActivity() {
 
     private lateinit var binding: ActivityEditProfileBinding
     private val dbService = DatabaseService()
     private var selectedImageUri: Uri? = null
+    private lateinit var sessionManager: SessionManager
+    private lateinit var user: Users
 
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -43,12 +46,9 @@ class EditProfile : AppCompatActivity() {
                     .load(selectedImageUri)
                     .placeholder(R.drawable.default_profile)
                     .into(binding.profileImage)
-                setEditButtonEnabled(true)
+                checkForChanges()
             }
         }
-
-    private lateinit var sessionManager: SessionManager
-    private lateinit var user: Users
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,16 +68,45 @@ class EditProfile : AppCompatActivity() {
         sessionManager = SessionManager(this)
         user = sessionManager.getUser()
 
+        setupCountryCodePicker()
         loadUserProfile()
         setupTextWatchers()
         setupButtons()
         loadPuroks()
+
+        setEditButtonEnabled(false)
+    }
+
+    private fun setupCountryCodePicker() {
+        val ccp: CountryCodePicker = binding.countryCodePicker
+        ccp.setCountryForNameCode("PH")
+        ccp.setAutoDetectedCountry(true)
+        ccp.registerCarrierNumberEditText(binding.mobileTv)
+
+        binding.mobileTv.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                var input = s.toString()
+                if (input.startsWith("0")) {
+                    input = input.drop(1)
+                    binding.mobileTv.setText(input)
+                    binding.mobileTv.setSelection(input.length)
+                }
+                if (input.length > 12) {
+                    input = input.substring(0, 12)
+                    binding.mobileTv.setText(input)
+                    binding.mobileTv.setSelection(12)
+                }
+                checkForChanges()
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
     }
 
     private fun loadUserProfile() {
         lifecycleScope.launch {
             try {
-
                 withContext(Dispatchers.IO) {
                     if (user.profilePic.isNotEmpty()) {
                         if (user.profilePic.startsWith("/9j") || user.profilePic.contains("base64")) {
@@ -85,9 +114,7 @@ class EditProfile : AppCompatActivity() {
                             val bitmap =
                                 BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
                             withContext(Dispatchers.Main) {
-                                binding.profileImage.setImageBitmap(
-                                    bitmap
-                                )
+                                binding.profileImage.setImageBitmap(bitmap)
                             }
                         } else {
                             withContext(Dispatchers.Main) {
@@ -104,12 +131,23 @@ class EditProfile : AppCompatActivity() {
                     }
                 }
 
-
                 binding.firstnameTv.setText(user.firstname)
                 binding.lastnameTv.setText(user.lastname)
                 binding.emailTv.setText(user.email)
-                binding.addressTv.setText(if (user.address.isNullOrEmpty()) "N/A" else user.address)
-                binding.mobileTv.setText(if (user.mobileNum == "null") "N/A" else user.mobileNum)
+                binding.addressTv.setText(if (user.address.isNullOrEmpty()) "" else user.address)
+
+                val ccp: CountryCodePicker = binding.countryCodePicker
+                if (!user.mobileNum.isNullOrEmpty() && user.mobileNum.startsWith("+")) {
+                    try {
+                        ccp.setFullNumber(user.mobileNum.replace("+", ""))
+                        val number = user.mobileNum.takeLast(10)
+                        binding.mobileTv.setText(number)
+                    } catch (e: Exception) {
+                        binding.mobileTv.setText(user.mobileNum)
+                    }
+                } else {
+                    binding.mobileTv.setText(if (user.mobileNum == "null") "" else user.mobileNum)
+                }
 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -123,15 +161,7 @@ class EditProfile : AppCompatActivity() {
         val watcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val updatedUser = user.copy(
-                    firstname = binding.firstnameTv.text.toString().trim(),
-                    lastname = binding.lastnameTv.text.toString().trim(),
-                    email = binding.emailTv.text.toString().trim(),
-                    address = binding.addressTv.text.toString().trim(),
-                    mobileNum = binding.mobileTv.text.toString().trim()
-                )
-                val hasChanges = updatedUser != user || selectedImageUri != null
-                setEditButtonEnabled(hasChanges)
+                checkForChanges()
             }
 
             override fun afterTextChanged(s: Editable?) {}
@@ -141,7 +171,19 @@ class EditProfile : AppCompatActivity() {
         binding.lastnameTv.addTextChangedListener(watcher)
         binding.emailTv.addTextChangedListener(watcher)
         binding.addressTv.addTextChangedListener(watcher)
-        binding.mobileTv.addTextChangedListener(watcher)
+    }
+
+    private fun checkForChanges() {
+        val firstnameChanged = binding.firstnameTv.text.toString().trim() != user.firstname
+        val lastnameChanged = binding.lastnameTv.text.toString().trim() != user.lastname
+        val emailChanged = binding.emailTv.text.toString().trim() != user.email
+        val addressChanged = binding.addressTv.text.toString().trim() != (user.address ?: "")
+        val mobileChanged = binding.mobileTv.text.toString().trim() != user.mobileNum?.takeLast(10)
+        val imageChanged = selectedImageUri != null
+
+        val hasChanges =
+            firstnameChanged || lastnameChanged || emailChanged || addressChanged || mobileChanged || imageChanged
+        setEditButtonEnabled(hasChanges)
     }
 
     private fun setupButtons() {
@@ -151,60 +193,62 @@ class EditProfile : AppCompatActivity() {
     }
 
     private fun saveChanges() {
-        lifecycleScope.launch {
-            val updatedUser = user.copy(
-                firstname = binding.firstnameTv.text.toString().trim(),
-                lastname = binding.lastnameTv.text.toString().trim(),
-                email = binding.emailTv.text.toString().trim(),
-                address = binding.addressTv.text.toString().trim(),
-                mobileNum = binding.mobileTv.text.toString().trim()
-            )
+        val ccp: CountryCodePicker = binding.countryCodePicker
+        val fullNumber = "+" + ccp.fullNumber.trim()
 
-            if (updatedUser == user && selectedImageUri == null) {
-                DialogHelper.showWarning(
-                    this@EditProfile,
-                    "No Changes Detected",
-                    "You haven’t change any profile information."
-                )
-                return@launch
-            }
+        val updatedUser = user.copy(
+            firstname = binding.firstnameTv.text.toString().trim(),
+            lastname = binding.lastnameTv.text.toString().trim(),
+            email = binding.emailTv.text.toString().trim(),
+            address = binding.addressTv.text.toString().trim(),
+            mobileNum = fullNumber
+        )
 
+        if (updatedUser == user && selectedImageUri == null) {
+            setEditButtonEnabled(false)
             DialogHelper.showWarning(
-                this@EditProfile,
-                "Update Profile",
-                "Are you sure you want to save these changes?",
-                onConfirm = {
-                    lifecycleScope.launch {
-                        val finalUser = if (selectedImageUri != null) {
-                            val inputStream = contentResolver.openInputStream(selectedImageUri!!)
-                            val bitmap = BitmapFactory.decodeStream(inputStream)
-                            val baos = java.io.ByteArrayOutputStream()
-                            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, baos)
-                            val base64Image =
-                                Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT)
-                            updatedUser.copy(profilePic = base64Image)
-                        } else updatedUser
-
-                        dbService.updateUser(
-                            finalUser.uid,
-                            finalUser,
-                            object : InterfaceClass.StatusCallback {
-                                override fun onSuccess(message: String) {
-                                    sessionManager.saveUser(finalUser)
-                                    DialogHelper.showSuccess(
-                                        this@EditProfile,
-                                        "Success",
-                                        message
-                                    ) { finish() }
-                                }
-
-                                override fun onError(message: String) {
-                                    DialogHelper.showError(this@EditProfile, "Error", message)
-                                }
-                            })
-                    }
-                })
+                this,
+                "No Changes Detected",
+                "You haven’t modified any profile information."
+            )
+            return
         }
+
+        DialogHelper.showWarning(
+            this,
+            "Update Profile",
+            "Are you sure you want to save these changes?",
+            onConfirm = {
+                binding.loadingOverlay.visibility = android.view.View.VISIBLE
+                lifecycleScope.launch {
+                    val finalUser = if (selectedImageUri != null) {
+                        val inputStream = contentResolver.openInputStream(selectedImageUri!!)
+                        val bitmap = BitmapFactory.decodeStream(inputStream)
+                        val baos = java.io.ByteArrayOutputStream()
+                        bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, baos)
+                        val base64Image = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT)
+                        updatedUser.copy(profilePic = base64Image)
+                    } else updatedUser
+
+                    dbService.updateUser(
+                        finalUser.uid,
+                        finalUser,
+                        object : InterfaceClass.StatusCallback {
+                            override fun onSuccess(message: String) {
+                                sessionManager.saveUser(finalUser)
+                                binding.loadingOverlay.visibility = android.view.View.GONE
+                                DialogHelper.showSuccess(this@EditProfile, "Success", message) {
+                                    finish()
+                                }
+                            }
+
+                            override fun onError(message: String) {
+                                binding.loadingOverlay.visibility = android.view.View.GONE
+                                DialogHelper.showError(this@EditProfile, "Error", message)
+                            }
+                        })
+                }
+            })
     }
 
     private fun loadPuroks() {
