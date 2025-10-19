@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyBabyVaxAdmin">
         <activity
+            android:name=".pages.SchedulesPage"
+            android:exported="false" />
+        <activity
             android:name=".pages.AddDosagePage"
             android:exported="false" />
         <activity

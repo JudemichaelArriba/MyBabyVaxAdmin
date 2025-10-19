@@ -26,5 +26,10 @@ interface InterfaceClass {
         fun onFailure(message: String)
     }
 
+    interface ScheduleCallback {
+        fun onSchedulesLoaded(schedules: List<Map<String, Any>>)
+        fun onError(error: String)
+    }
+
 
 }

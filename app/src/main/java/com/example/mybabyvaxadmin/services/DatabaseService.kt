@@ -108,4 +108,67 @@ class DatabaseService {
             }
     }
 
+
+
+    fun fetchAllBabySchedules(callback: InterfaceClass.ScheduleCallback) {
+        databaseUsers.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val allSchedules = mutableListOf<Map<String, Any>>()
+                val mergedSchedules = mutableMapOf<String, MutableList<Map<String, Any>>>()
+
+                for (userSnap in snapshot.children) {
+                    val babiesSnap = userSnap.child("babies")
+                    for (babySnap in babiesSnap.children) {
+                        val babyName = babySnap.child("fullName").getValue(String::class.java) ?: "Unknown"
+                        val schedulesSnap = babySnap.child("schedules")
+
+                        for (vaccineSnap in schedulesSnap.children) {
+                            val vaccineName = vaccineSnap.child("vaccineName").getValue(String::class.java) ?: ""
+                            val dosesSnap = vaccineSnap.child("doses")
+
+                            for (doseSnap in dosesSnap.children) {
+                                val date = doseSnap.child("date").getValue(String::class.java) ?: ""
+                                val doseName = doseSnap.child("doseName").getValue(String::class.java) ?: ""
+                                val completed = doseSnap.child("completed").getValue(Boolean::class.java) ?: false
+
+                                val key = "$date|$vaccineName|$doseName"
+
+                                val scheduleItem = mapOf(
+                                    "date" to date,
+                                    "vaccineName" to vaccineName,
+                                    "doseName" to doseName,
+                                    "babyName" to babyName,
+                                    "completed" to completed
+                                )
+
+                                if (!mergedSchedules.containsKey(key)) {
+                                    mergedSchedules[key] = mutableListOf(scheduleItem)
+                                } else {
+                                    mergedSchedules[key]?.add(scheduleItem)
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                for ((key, value) in mergedSchedules) {
+                    allSchedules.add(
+                        mapOf(
+                            "key" to key,
+                            "details" to value
+                        )
+                    )
+                }
+
+                callback.onSchedulesLoaded(allSchedules)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback.onError(error.message)
+            }
+        })
+    }
+
+
 }

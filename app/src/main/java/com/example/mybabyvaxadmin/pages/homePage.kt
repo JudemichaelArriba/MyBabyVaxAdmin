@@ -1,5 +1,6 @@
 package com.example.mybabyvaxadmin.pages
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -77,6 +78,13 @@ class homePage : Fragment() {
         } else {
             binding.username.text = "No user found"
             binding.profileImage.setImageResource(R.drawable.default_profile)
+        }
+
+
+
+        binding.viewAllSched.setOnClickListener {
+            val intent = Intent(requireContext(), SchedulesPage::class.java)
+            startActivity(intent)
         }
     }
 
