@@ -2,25 +2,93 @@ package com.example.mybabyvaxadmin.pages
 
 import android.animation.ValueAnimator
 import android.os.Bundle
+import android.util.Log
 import android.view.View
-import androidx.activity.enableEdgeToEdge
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.mybabyvaxadmin.adapters.ScheduleAdapter
 import com.example.mybabyvaxadmin.databinding.ActivitySchedulesPageBinding
+import com.example.iptfinal.services.DatabaseService
+import com.example.mybabyvaxadmin.models.MergedSchedule
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class SchedulesPage : AppCompatActivity() {
 
     private lateinit var binding: ActivitySchedulesPageBinding
+    private lateinit var adapter: ScheduleAdapter
+    private val databaseService = DatabaseService()
     private var isExpanded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivitySchedulesPageBinding.inflate(layoutInflater)
         setContentView(binding.root)
         window.statusBarColor = getColor(com.example.mybabyvaxadmin.R.color.mainColor)
+
+        setupRecyclerView()
         setupSearchBarAnimation()
         setupBackButton()
+
+
+        loadSchedules()
     }
+
+
+    private fun setupRecyclerView() {
+        adapter = ScheduleAdapter(emptyList()) { schedule ->
+            Toast.makeText(this, "Clicked ${schedule.vaccineName}", Toast.LENGTH_SHORT).show()
+        }
+        binding.scheduleRecyclerView.layoutManager = LinearLayoutManager(this)
+        binding.scheduleRecyclerView.adapter = adapter
+    }
+
+
+    private fun loadSchedules() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                launch(Dispatchers.Main) { binding.loading.visibility = View.VISIBLE }
+
+                val schedules = fetchSchedulesSafely()
+
+                launch(Dispatchers.Main) {
+                    adapter.updateList(schedules)
+                    binding.loading.visibility = View.GONE
+                }
+
+            } catch (e: Exception) {
+                Log.e("SchedulesPage", "Error fetching schedules: ${e.message}")
+                launch(Dispatchers.Main) {
+                    binding.loading.visibility = View.GONE
+                    Toast.makeText(
+                        this@SchedulesPage,
+                        e.message ?: "Error loading schedules",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private suspend fun fetchSchedulesSafely(): List<MergedSchedule> =
+        suspendCancellableCoroutine { cont ->
+            databaseService.fetchAllBabySchedules(object :
+                com.example.iptfinal.interfaces.InterfaceClass.MergedScheduleCallback {
+                override fun onMergedSchedulesLoaded(schedules: List<MergedSchedule>) {
+                    cont.resume(schedules)
+                }
+
+                override fun onError(error: String) {
+                    cont.resumeWithException(Exception(error))
+                }
+            })
+        }
+
 
     private fun setupSearchBarAnimation() {
         val searchContainer = binding.searchContainer
@@ -45,8 +113,7 @@ class SchedulesPage : AppCompatActivity() {
 
     private fun expandSearchBar(view: View) {
         val startWidth = view.width
-        val endWidth = 500
-
+        val endWidth = 600
         val animator = ValueAnimator.ofInt(startWidth, endWidth)
         animator.addUpdateListener {
             val value = it.animatedValue as Int
@@ -61,7 +128,6 @@ class SchedulesPage : AppCompatActivity() {
     private fun collapseSearchBar(view: View) {
         val startWidth = view.width
         val endWidth = 120
-
         val animator = ValueAnimator.ofInt(startWidth, endWidth)
         animator.addUpdateListener {
             val value = it.animatedValue as Int
@@ -73,9 +139,8 @@ class SchedulesPage : AppCompatActivity() {
         animator.start()
     }
 
+
     private fun setupBackButton() {
-        binding.backButton.setOnClickListener {
-            finish()
-        }
+        binding.backButton.setOnClickListener { finish() }
     }
 }

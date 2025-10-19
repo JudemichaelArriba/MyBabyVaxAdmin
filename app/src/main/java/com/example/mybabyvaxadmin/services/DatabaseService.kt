@@ -3,6 +3,7 @@ package com.example.iptfinal.services
 import android.util.Log
 import com.example.iptfinal.interfaces.InterfaceClass
 import com.example.mybabyvaxadmin.models.Dose
+import com.example.mybabyvaxadmin.models.MergedSchedule
 
 import com.example.mybabyvaxadmin.models.Users
 import com.example.mybabyvaxadmin.models.Vaccine
@@ -109,59 +110,65 @@ class DatabaseService {
     }
 
 
-
-    fun fetchAllBabySchedules(callback: InterfaceClass.ScheduleCallback) {
+    fun fetchAllBabySchedules(callback: InterfaceClass.MergedScheduleCallback) {
         databaseUsers.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val allSchedules = mutableListOf<Map<String, Any>>()
-                val mergedSchedules = mutableMapOf<String, MutableList<Map<String, Any>>>()
+                val mergedMap = mutableMapOf<String, MergedSchedule>()
 
                 for (userSnap in snapshot.children) {
                     val babiesSnap = userSnap.child("babies")
                     for (babySnap in babiesSnap.children) {
-                        val babyName = babySnap.child("fullName").getValue(String::class.java) ?: "Unknown"
+                        val babyName =
+                            babySnap.child("fullName").getValue(String::class.java) ?: "Unknown"
                         val schedulesSnap = babySnap.child("schedules")
 
                         for (vaccineSnap in schedulesSnap.children) {
-                            val vaccineName = vaccineSnap.child("vaccineName").getValue(String::class.java) ?: ""
+                            val vaccineName =
+                                vaccineSnap.child("vaccineName").getValue(String::class.java) ?: ""
                             val dosesSnap = vaccineSnap.child("doses")
 
+                            var activeDoseFound = false
+
                             for (doseSnap in dosesSnap.children) {
+                                val completed =
+                                    doseSnap.child("completed").getValue(Boolean::class.java)
+                                        ?: false
                                 val date = doseSnap.child("date").getValue(String::class.java) ?: ""
-                                val doseName = doseSnap.child("doseName").getValue(String::class.java) ?: ""
-                                val completed = doseSnap.child("completed").getValue(Boolean::class.java) ?: false
+                                val doseName =
+                                    doseSnap.child("doseName").getValue(String::class.java) ?: ""
 
-                                val key = "$date|$vaccineName|$doseName"
 
-                                val scheduleItem = mapOf(
-                                    "date" to date,
-                                    "vaccineName" to vaccineName,
-                                    "doseName" to doseName,
-                                    "babyName" to babyName,
-                                    "completed" to completed
-                                )
+                                if (!completed && !activeDoseFound) {
+                                    activeDoseFound = true
 
-                                if (!mergedSchedules.containsKey(key)) {
-                                    mergedSchedules[key] = mutableListOf(scheduleItem)
-                                } else {
-                                    mergedSchedules[key]?.add(scheduleItem)
+                                    if (date.isNotEmpty() && vaccineName.isNotEmpty() && doseName.isNotEmpty()) {
+                                        val key = "$date|$vaccineName|$doseName"
+                                        val existing = mergedMap[key]
+
+                                        if (existing == null) {
+                                            mergedMap[key] = MergedSchedule(
+                                                date = date,
+                                                vaccineName = vaccineName,
+                                                doseName = doseName,
+                                                babyNames = mutableListOf(babyName)
+                                            )
+                                        } else {
+                                            val updatedNames = existing.babyNames.toMutableList()
+                                            updatedNames.add(babyName)
+                                            mergedMap[key] = existing.copy(babyNames = updatedNames)
+                                        }
+                                    }
                                 }
+
+
+                                if (activeDoseFound) break
                             }
                         }
                     }
                 }
 
-
-                for ((key, value) in mergedSchedules) {
-                    allSchedules.add(
-                        mapOf(
-                            "key" to key,
-                            "details" to value
-                        )
-                    )
-                }
-
-                callback.onSchedulesLoaded(allSchedules)
+                val mergedList = mergedMap.values.sortedBy { it.date }
+                callback.onMergedSchedulesLoaded(mergedList)
             }
 
             override fun onCancelled(error: DatabaseError) {
