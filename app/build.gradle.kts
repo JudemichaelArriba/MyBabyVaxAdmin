@@ -74,7 +74,9 @@ dependencies {
     implementation(libs.firebase.database)
     //Contact Number Nation Chooser
     implementation("com.hbb20:ccp:2.7.3")
-
+    //qrCode API
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    implementation("com.google.zxing:core:3.5.3")
 
 //    implementation("com.google.android.gms:play-services-auth:21.4.0")
 

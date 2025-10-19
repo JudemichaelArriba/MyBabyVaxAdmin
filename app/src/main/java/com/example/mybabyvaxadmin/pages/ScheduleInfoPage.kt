@@ -1,5 +1,6 @@
 package com.example.mybabyvaxadmin.pages
 
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -11,15 +12,23 @@ import com.example.mybabyvaxadmin.databinding.ActivityScheduleInfoPageBinding
 import com.example.iptfinal.services.DatabaseService
 import com.example.iptfinal.interfaces.InterfaceClass
 import com.example.mybabyvaxadmin.models.Baby
+import com.google.zxing.BarcodeFormat
+import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 
 class ScheduleInfoPage : AppCompatActivity() {
 
     private lateinit var binding: ActivityScheduleInfoPageBinding
     private lateinit var babyAdapter: BabyAdapter
     private val databaseService = DatabaseService()
+
+    private var vaccineName: String = ""
+    private var doseName: String = ""
+    private var date: String = ""
+    private var babyIds: ArrayList<String> = arrayListOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,38 +40,38 @@ class ScheduleInfoPage : AppCompatActivity() {
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = babyAdapter
 
-
         binding.backButton.setOnClickListener { finish() }
 
-
-        val vaccineName = intent.getStringExtra("vaccineName") ?: "Unknown Vaccine"
-        val doseName = intent.getStringExtra("doseName") ?: "Unknown Dose"
-        val date = intent.getStringExtra("date") ?: "No Date"
-        val babyIds = intent.getStringArrayListExtra("babyIds") ?: arrayListOf()
-
+        // Get data from intent
+        vaccineName = intent.getStringExtra("vaccineName") ?: "Unknown Vaccine"
+        doseName = intent.getStringExtra("doseName") ?: "Unknown Dose"
+        date = intent.getStringExtra("date") ?: "No Date"
+        babyIds = intent.getStringArrayListExtra("babyIds") ?: arrayListOf()
 
         binding.vaccineName.text = vaccineName
         binding.vaccineDetails.text = "$doseName • $date"
 
-
+        // Load babies
         loadBabies(babyIds)
+
+        // Generate QR code button click
+        binding.btnGenerateQR.setOnClickListener {
+            generateQRCode()
+        }
     }
 
+    // --- Load Baby Data ---
     private fun loadBabies(babyIds: List<String>) {
         if (babyIds.isEmpty()) {
             Toast.makeText(this, "No babies found for this schedule", Toast.LENGTH_SHORT).show()
             return
         }
 
-        runOnUiThread {
-            binding.loading.visibility = View.VISIBLE
-        }
+        binding.loading.visibility = View.VISIBLE
         val babies = mutableListOf<Baby>()
 
         lifecycleScope.launch(Dispatchers.IO) {
-
             var completedCount = 0
-
             for (babyId in babyIds) {
                 databaseService.fetchBabyById(babyId, object : InterfaceClass.BabyCallback {
                     override fun onBabyLoaded(baby: Baby) {
@@ -96,4 +105,29 @@ class ScheduleInfoPage : AppCompatActivity() {
         }
     }
 
+
+    private fun generateQRCode() {
+        try {
+
+            val qrData = JSONObject().apply {
+                put("vaccineName", vaccineName)
+                put("doseName", doseName)
+                put("date", date)
+                put("babyIds", babyIds)
+                put("token", System.currentTimeMillis().toString())
+            }
+
+            val encoder = BarcodeEncoder()
+            val bitmap: Bitmap =
+                encoder.encodeBitmap(qrData.toString(), BarcodeFormat.QR_CODE, 600, 600)
+
+            binding.qrCode.setImageBitmap(bitmap)
+            Toast.makeText(this, "QR Code generated!", Toast.LENGTH_SHORT).show()
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Failed to generate QR code: ${e.message}", Toast.LENGTH_SHORT)
+                .show()
+        }
+    }
 }
