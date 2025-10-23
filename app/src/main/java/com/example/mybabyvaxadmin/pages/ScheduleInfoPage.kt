@@ -42,7 +42,7 @@ class ScheduleInfoPage : AppCompatActivity() {
 
         binding.backButton.setOnClickListener { finish() }
 
-        // Get data from intent
+
         vaccineName = intent.getStringExtra("vaccineName") ?: "Unknown Vaccine"
         doseName = intent.getStringExtra("doseName") ?: "Unknown Dose"
         date = intent.getStringExtra("date") ?: "No Date"
@@ -51,16 +51,16 @@ class ScheduleInfoPage : AppCompatActivity() {
         binding.vaccineName.text = vaccineName
         binding.vaccineDetails.text = "$doseName • $date"
 
-        // Load babies
+
         loadBabies(babyIds)
 
-        // Generate QR code button click
+
         binding.btnGenerateQR.setOnClickListener {
             generateQRCode()
         }
     }
 
-    // --- Load Baby Data ---
+
     private fun loadBabies(babyIds: List<String>) {
         if (babyIds.isEmpty()) {
             Toast.makeText(this, "No babies found for this schedule", Toast.LENGTH_SHORT).show()
@@ -108,12 +108,16 @@ class ScheduleInfoPage : AppCompatActivity() {
 
     private fun generateQRCode() {
         try {
-
             val qrData = JSONObject().apply {
                 put("vaccineName", vaccineName)
                 put("doseName", doseName)
                 put("date", date)
-                put("babyIds", babyIds)
+
+
+                val babyArray = org.json.JSONArray()
+                babyIds.forEach { babyArray.put(it) }
+                put("babyIds", babyArray)
+
                 put("token", System.currentTimeMillis().toString())
             }
 
@@ -130,4 +134,5 @@ class ScheduleInfoPage : AppCompatActivity() {
                 .show()
         }
     }
+
 }
