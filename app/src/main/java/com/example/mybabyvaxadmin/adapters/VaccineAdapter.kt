@@ -5,10 +5,10 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.mybabyvaxadmin.databinding.ItemVaccinesBinding
-import com.example.mybabyvaxadmin.models.VaccineWithDoses
+import com.example.mybabyvaxadmin.models.Vaccine
 import com.example.mybabyvaxadmin.pages.VaccineInfoPage
 
-class VaccineAdapter(private val vaccines: List<VaccineWithDoses>) :
+class VaccineAdapter(private val vaccines: List<Vaccine>) :
     RecyclerView.Adapter<VaccineAdapter.VaccineViewHolder>() {
 
     inner class VaccineViewHolder(val binding: ItemVaccinesBinding) :
@@ -24,8 +24,7 @@ class VaccineAdapter(private val vaccines: List<VaccineWithDoses>) :
     }
 
     override fun onBindViewHolder(holder: VaccineViewHolder, position: Int) {
-        val vaccineWithDoses = vaccines[position]
-        val vaccine = vaccineWithDoses.vaccine
+        val vaccine = vaccines[position]
 
         holder.binding.tvVaccineName.text = vaccine.name
         holder.binding.routeTv.text = vaccine.route ?: "-"

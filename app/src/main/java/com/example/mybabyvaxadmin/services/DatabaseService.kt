@@ -8,7 +8,7 @@ import com.example.mybabyvaxadmin.models.MergedSchedule
 
 import com.example.mybabyvaxadmin.models.Users
 import com.example.mybabyvaxadmin.models.Vaccine
-import com.example.mybabyvaxadmin.models.VaccineWithDoses
+
 import com.google.firebase.database.*
 
 class DatabaseService {
@@ -216,21 +216,12 @@ class DatabaseService {
     fun fetchAllVaccines(callback: InterfaceClass.VaccineListCallback) {
         databaseVaccines.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val vaccineList = mutableListOf<VaccineWithDoses>()
+                val vaccineList = mutableListOf<Vaccine>()
 
                 for (vaccineSnap in snapshot.children) {
                     val vaccine = vaccineSnap.getValue(Vaccine::class.java)
                     if (vaccine != null) {
-                        val dosesList = mutableListOf<Dose>()
-
-                        if (vaccineSnap.hasChild("doses")) {
-                            for (doseSnap in vaccineSnap.child("doses").children) {
-                                val dose = doseSnap.getValue(Dose::class.java)
-                                if (dose != null) dosesList.add(dose)
-                            }
-                        }
-
-                        vaccineList.add(VaccineWithDoses(vaccine, dosesList))
+                        vaccineList.add(vaccine)
                     }
                 }
 
@@ -244,6 +235,28 @@ class DatabaseService {
     }
 
 
+    fun fetchDosesByVaccineId(vaccineId: String, callback: InterfaceClass.DoseListCallback) {
+        val dosesRef = databaseVaccines.child(vaccineId).child("doses")
+
+        dosesRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val doseList = mutableListOf<Dose>()
+
+                for (doseSnap in snapshot.children) {
+                    val dose = doseSnap.getValue(Dose::class.java)
+                    if (dose != null) {
+                        doseList.add(dose)
+                    }
+                }
+
+                callback.onDosesLoaded(doseList)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback.onError(error.message)
+            }
+        })
+    }
 
 
 }

@@ -2,9 +2,11 @@ package com.example.iptfinal.interfaces
 
 
 import com.example.mybabyvaxadmin.models.Baby
+import com.example.mybabyvaxadmin.models.Dose
 import com.example.mybabyvaxadmin.models.MergedSchedule
 import com.example.mybabyvaxadmin.models.Users
-import com.example.mybabyvaxadmin.models.VaccineWithDoses
+import com.example.mybabyvaxadmin.models.Vaccine
+
 
 interface InterfaceClass {
 
@@ -38,10 +40,15 @@ interface InterfaceClass {
         fun onBabyLoaded(baby: Baby)
         fun onError(message: String)
     }
+
     interface VaccineListCallback {
-        fun onVaccinesLoaded(vaccines: List<VaccineWithDoses>)
-        fun onError(message: String?)
+        fun onVaccinesLoaded(vaccineList: List<Vaccine>)
+        fun onError(message: String)
     }
 
+    interface DoseListCallback {
+        fun onDosesLoaded(doses: List<Dose>)
+        fun onError(message: String?)
+    }
 
 }

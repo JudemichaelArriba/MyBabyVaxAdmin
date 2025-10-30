@@ -11,7 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mybabyvaxadmin.adapters.VaccineAdapter
 import com.example.mybabyvaxadmin.databinding.FragmentVaccinesPageBinding
-import com.example.mybabyvaxadmin.models.VaccineWithDoses
+import com.example.mybabyvaxadmin.models.Vaccine
 import com.example.iptfinal.services.DatabaseService
 import com.example.iptfinal.interfaces.InterfaceClass
 import kotlinx.coroutines.Dispatchers
@@ -87,17 +87,19 @@ class vaccinesPage : Fragment() {
         }
     }
 
-    // Wrap DatabaseService callback in a suspend function
-    private suspend fun getAllVaccines(): List<VaccineWithDoses> =
+
+    private suspend fun getAllVaccines(): List<Vaccine> =
         suspendCancellableCoroutine { cont ->
             databaseService.fetchAllVaccines(object : InterfaceClass.VaccineListCallback {
-                override fun onVaccinesLoaded(vaccines: List<VaccineWithDoses>) {
+                override fun onVaccinesLoaded(vaccines: List<Vaccine>) {
                     cont.resume(vaccines)
                 }
 
-                override fun onError(message: String?) {
+                override fun onError(message: String) {
                     cont.resumeWithException(Exception(message))
                 }
+
+
             })
         }
 
