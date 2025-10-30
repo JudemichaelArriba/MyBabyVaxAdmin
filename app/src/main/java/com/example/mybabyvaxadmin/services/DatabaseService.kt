@@ -320,4 +320,76 @@ class DatabaseService {
     }
 
 
+    fun updateVaccineEverywhere(
+        vaccineId: String,
+        oldName: String,
+        newName: String,
+        newRoute: String,
+        newType: String,
+        newDescription: String,
+        newSideEffects: String,
+        callback: InterfaceClass.StatusCallback
+    ) {
+        val vaccineData = mapOf(
+            "name" to newName,
+            "route" to newRoute,
+            "type" to newType,
+            "description" to newDescription,
+            "sideEffects" to newSideEffects,
+
+            )
+
+        val database = FirebaseDatabase.getInstance().reference
+
+
+        database.child("vaccines").child(vaccineId).updateChildren(vaccineData)
+            .addOnSuccessListener {
+                Log.d("VaccineUpdate", "Vaccine updated in /vaccines")
+
+
+                database.child("users").get().addOnSuccessListener { usersSnapshot ->
+                    for (userSnap in usersSnapshot.children) {
+                        val babiesSnap = userSnap.child("babies")
+                        for (babySnap in babiesSnap.children) {
+                            val schedulesSnap = babySnap.child("schedules")
+                            for (scheduleSnap in schedulesSnap.children) {
+                                val vaccineName =
+                                    scheduleSnap.child("vaccineName").getValue(String::class.java)
+                                if (vaccineName == oldName || scheduleSnap.key == oldName) {
+                                    val scheduleRef = scheduleSnap.ref
+                                    val updatedSchedule = mapOf(
+                                        "vaccineName" to newName,
+                                        "description" to newDescription,
+                                        "route" to newRoute,
+                                        "sideEffects" to newSideEffects,
+                                        "vaccineType" to newType
+                                    )
+
+
+                                    val parentRef = scheduleRef.parent
+                                    val oldData = scheduleSnap.value
+                                    parentRef?.child(newName)?.setValue(oldData)
+                                        ?.addOnSuccessListener {
+                                            parentRef.child(oldName).removeValue()
+                                            parentRef.child(newName).updateChildren(updatedSchedule)
+                                            Log.d(
+                                                "VaccineUpdate",
+                                                "Renamed schedule $oldName → $newName for ${babySnap.key}"
+                                            )
+                                        }
+                                }
+                            }
+                        }
+                    }
+                    callback.onSuccess("Vaccine and related baby schedules updated successfully.")
+                }.addOnFailureListener {
+                    callback.onError("Failed to update baby schedules: ${it.message}")
+                }
+            }
+            .addOnFailureListener {
+                callback.onError("Failed to update vaccine record: ${it.message}")
+            }
+    }
+
+
 }

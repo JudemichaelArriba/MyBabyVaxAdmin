@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyBabyVaxAdmin">
         <activity
+            android:name=".pages.EditVaccineInfoPage"
+            android:exported="false" />
+        <activity
             android:name=".pages.VaccineInfoPage"
             android:exported="false" />
         <activity

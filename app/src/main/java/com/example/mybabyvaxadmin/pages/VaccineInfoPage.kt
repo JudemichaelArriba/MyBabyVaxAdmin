@@ -1,5 +1,6 @@
 package com.example.mybabyvaxadmin.pages
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
@@ -48,6 +49,18 @@ class VaccineInfoPage : AppCompatActivity() {
             if (vaccineEligibleAge >= 0) "$vaccineEligibleAge" else "-"
 
 
+        binding.editButton.setOnClickListener {
+            val intent = Intent(this, EditVaccineInfoPage::class.java)
+            intent.putExtra("vaccineId", vaccineId)
+            intent.putExtra("vaccineName", vaccineName)
+            intent.putExtra("vaccineRoute", vaccineRoute)
+            intent.putExtra("vaccineType", vaccineType)
+            intent.putExtra("vaccineDescription", vaccineDescription)
+            intent.putExtra("vaccineSideEffects", vaccineSideEffects)
+            intent.putExtra("vaccineEligibleAge", vaccineEligibleAge)
+            startActivity(intent)
+        }
+
         binding.backButton.setOnClickListener { finish() }
 
 
@@ -64,25 +77,27 @@ class VaccineInfoPage : AppCompatActivity() {
                 title = "Delete Vaccine",
                 message = "Are you sure you want to delete this vaccine? This will also remove all related baby schedules.",
                 onConfirm = {
-                    databaseService.deleteVaccine(vaccineId, object : InterfaceClass.StatusCallback {
-                        override fun onSuccess(message: String) {
-                            DialogHelper.showSuccess(
-                                this@VaccineInfoPage,
-                                "Deleted",
-                                message ?: "Vaccine deleted successfully."
-                            ) {
-                                finish()
+                    databaseService.deleteVaccine(
+                        vaccineId,
+                        object : InterfaceClass.StatusCallback {
+                            override fun onSuccess(message: String) {
+                                DialogHelper.showSuccess(
+                                    this@VaccineInfoPage,
+                                    "Deleted",
+                                    message ?: "Vaccine deleted successfully."
+                                ) {
+                                    finish()
+                                }
                             }
-                        }
 
-                        override fun onError(errorMessage: String) {
-                            DialogHelper.showError(
-                                this@VaccineInfoPage,
-                                "Error",
-                                errorMessage ?: "Failed to delete vaccine."
-                            )
-                        }
-                    })
+                            override fun onError(errorMessage: String) {
+                                DialogHelper.showError(
+                                    this@VaccineInfoPage,
+                                    "Error",
+                                    errorMessage ?: "Failed to delete vaccine."
+                                )
+                            }
+                        })
                 },
                 onCancel = {
 
@@ -105,4 +120,6 @@ class VaccineInfoPage : AppCompatActivity() {
             }
         })
     }
+
+
 }
