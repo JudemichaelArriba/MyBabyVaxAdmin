@@ -1,6 +1,5 @@
 package com.example.mybabyvaxadmin.pages
 
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -10,12 +9,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.iptfinal.interfaces.InterfaceClass
-import com.example.iptfinal.services.DatabaseService
+
+import com.example.mybabyvaxadmin.services.DatabaseService
 import com.example.mybabyvaxadmin.R
 import com.example.mybabyvaxadmin.components.DialogHelper
-import com.example.mybabyvaxadmin.components.bottomNav
 import com.example.mybabyvaxadmin.databinding.ActivityAddDosagePageBinding
+import com.example.mybabyvaxadmin.interfaces.InterfaceClass
 import com.example.mybabyvaxadmin.models.Dose
 import com.example.mybabyvaxadmin.models.Vaccine
 

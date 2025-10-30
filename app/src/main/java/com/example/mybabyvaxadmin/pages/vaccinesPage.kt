@@ -3,6 +3,8 @@ package com.example.mybabyvaxadmin.pages
 import android.animation.ValueAnimator
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,8 +14,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mybabyvaxadmin.adapters.VaccineAdapter
 import com.example.mybabyvaxadmin.databinding.FragmentVaccinesPageBinding
 import com.example.mybabyvaxadmin.models.Vaccine
-import com.example.iptfinal.services.DatabaseService
-import com.example.iptfinal.interfaces.InterfaceClass
+import com.example.mybabyvaxadmin.services.DatabaseService
+import com.example.mybabyvaxadmin.interfaces.InterfaceClass
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -27,6 +29,10 @@ class vaccinesPage : Fragment() {
 
     private var isExpanded = false
     private val databaseService = DatabaseService()
+
+
+    private var allVaccines: List<Vaccine> = emptyList()
+    private lateinit var vaccineAdapter: VaccineAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -61,9 +67,26 @@ class vaccinesPage : Fragment() {
                 searchInput.animate().alpha(0f).setDuration(200)
                     .withEndAction { searchInput.visibility = View.GONE }
                     .start()
+                searchInput.text?.clear()
+                vaccineAdapter.updateList(allVaccines)
             }
             isExpanded = !isExpanded
         }
+
+
+        searchInput.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s.toString().trim().lowercase()
+                val filtered = allVaccines.filter { vaccine ->
+                    vaccine.name?.lowercase()!!.contains(query) ||
+                            vaccine.type?.lowercase()!!.contains(query) ||
+                            vaccine.route?.lowercase()!!.contains(query)
+                }
+                vaccineAdapter.updateList(filtered)
+            }
+        })
     }
 
     private fun setupAddButton() {
@@ -74,14 +97,16 @@ class vaccinesPage : Fragment() {
 
     private fun setupRecyclerView() {
         binding.vaccinesRecycleview.layoutManager = LinearLayoutManager(requireContext())
+        vaccineAdapter = VaccineAdapter(emptyList())
+        binding.vaccinesRecycleview.adapter = vaccineAdapter
     }
 
     private fun fetchVaccines() {
         binding.progressBar.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.Main) {
             try {
-                val vaccines = getAllVaccines()
-                binding.vaccinesRecycleview.adapter = VaccineAdapter(vaccines)
+                allVaccines = getAllVaccines()
+                vaccineAdapter.updateList(allVaccines)
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -89,7 +114,6 @@ class vaccinesPage : Fragment() {
             }
         }
     }
-
 
     private suspend fun getAllVaccines(): List<Vaccine> =
         suspendCancellableCoroutine { cont ->
@@ -101,15 +125,12 @@ class vaccinesPage : Fragment() {
                 override fun onError(message: String) {
                     cont.resumeWithException(Exception(message))
                 }
-
-
             })
         }
 
     private fun expandSearchBar(view: View) {
         val startWidth = view.width
         val endWidth = 600
-
         val animator = ValueAnimator.ofInt(startWidth, endWidth)
         animator.addUpdateListener {
             val value = it.animatedValue as Int
@@ -124,7 +145,6 @@ class vaccinesPage : Fragment() {
     private fun collapseSearchBar(view: View) {
         val startWidth = view.width
         val endWidth = 120
-
         val animator = ValueAnimator.ofInt(startWidth, endWidth)
         animator.addUpdateListener {
             val value = it.animatedValue as Int

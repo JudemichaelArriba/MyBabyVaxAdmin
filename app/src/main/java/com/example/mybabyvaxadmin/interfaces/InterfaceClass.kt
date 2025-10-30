@@ -1,4 +1,4 @@
-package com.example.iptfinal.interfaces
+package com.example.mybabyvaxadmin.interfaces
 
 
 import com.example.mybabyvaxadmin.models.Baby
@@ -51,4 +51,9 @@ interface InterfaceClass {
         fun onError(message: String?)
     }
 
+
+    interface AllBabiesCallback {
+        fun onBabiesLoaded(babies: List<Baby>)
+        fun onError(message: String)
+    }
 }

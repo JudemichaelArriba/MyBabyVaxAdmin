@@ -8,10 +8,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.iptfinal.interfaces.InterfaceClass
-import com.example.iptfinal.services.DatabaseService
+
+import com.example.mybabyvaxadmin.services.DatabaseService
 import com.example.mybabyvaxadmin.R
 import com.example.mybabyvaxadmin.databinding.ActivityAddVaccinePageBinding
+import com.example.mybabyvaxadmin.interfaces.InterfaceClass
 import com.example.mybabyvaxadmin.models.Vaccine
 
 
@@ -41,7 +42,7 @@ class AddVaccinePage : AppCompatActivity() {
     }
 
 
-    // Populates all the spinners for admin to choose
+
     private fun spinnersValues() {
         val routeOptions = listOf("Injection", "Oral", "Intranasal", "Topical")
         val typeOptions = listOf(

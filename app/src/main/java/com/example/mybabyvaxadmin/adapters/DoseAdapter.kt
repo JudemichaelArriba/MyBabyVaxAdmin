@@ -15,8 +15,7 @@ class DoseAdapter(private val doses: List<Dose>) :
     inner class DoseViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val ivVaccineIcon: ImageView = itemView.findViewById(R.id.ivVaccineIcon)
         val doseNameTv: TextView = itemView.findViewById(R.id.doseNameTv)
-        val btnEdit: ImageView = itemView.findViewById(R.id.btnEdit)
-        val btnDelete: ImageView = itemView.findViewById(R.id.btnDelete)
+
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DoseViewHolder {

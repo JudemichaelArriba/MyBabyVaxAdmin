@@ -1,7 +1,8 @@
-package com.example.iptfinal.services
+package com.example.mybabyvaxadmin.services
 
 import android.util.Log
-import com.example.iptfinal.interfaces.InterfaceClass
+
+import com.example.mybabyvaxadmin.interfaces.InterfaceClass
 import com.example.mybabyvaxadmin.models.Baby
 import com.example.mybabyvaxadmin.models.Dose
 import com.example.mybabyvaxadmin.models.MergedSchedule
@@ -389,6 +390,36 @@ class DatabaseService {
             .addOnFailureListener {
                 callback.onError("Failed to update vaccine record: ${it.message}")
             }
+    }
+
+
+    fun fetchAllBabies(callback: InterfaceClass.AllBabiesCallback) {
+        databaseUsers.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val babyList = mutableListOf<Baby>()
+
+                for (userSnap in snapshot.children) {
+                    val userId = userSnap.key ?: continue
+                    val babiesSnap = userSnap.child("babies")
+
+                    for (babySnap in babiesSnap.children) {
+                        val baby = babySnap.getValue(Baby::class.java)
+                        if (baby != null) {
+
+                            baby.parentId = baby.parentId ?: userId
+                            babyList.add(baby)
+                        }
+                    }
+                }
+
+
+                callback.onBabiesLoaded(babyList)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback.onError("Failed to fetch babies: ${error.message}")
+            }
+        })
     }
 
 

@@ -13,6 +13,7 @@ import android.graphics.PorterDuff
 import android.util.Base64
 import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat
+import com.example.mybabyvaxadmin.models.Vaccine
 import java.util.Calendar
 import kotlin.apply
 import kotlin.text.isEmpty
@@ -24,7 +25,7 @@ import kotlin.text.trim
 
 class BabyAdapter : RecyclerView.Adapter<BabyAdapter.BabyViewHolder>() {
 
-    private val babies = mutableListOf<Baby>()
+    private var babies = mutableListOf<Baby>()
 
     inner class BabyViewHolder(val binding: ItemBabyBinding) :
         RecyclerView.ViewHolder(binding.root)
@@ -139,5 +140,10 @@ class BabyAdapter : RecyclerView.Adapter<BabyAdapter.BabyViewHolder>() {
             if (ageDays > 0) append("$ageDays days")
             if (isEmpty()) append("0 days")
         }.trim()
+    }
+
+    fun updateList(newList: MutableList<Baby>) {
+        babies = newList
+        notifyDataSetChanged()
     }
 }

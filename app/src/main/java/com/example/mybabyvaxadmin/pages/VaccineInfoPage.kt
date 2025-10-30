@@ -7,8 +7,8 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.iptfinal.interfaces.InterfaceClass
-import com.example.iptfinal.services.DatabaseService
+import com.example.mybabyvaxadmin.interfaces.InterfaceClass
+import com.example.mybabyvaxadmin.services.DatabaseService
 import com.example.mybabyvaxadmin.R
 import com.example.mybabyvaxadmin.adapters.DoseAdapter
 import com.example.mybabyvaxadmin.components.DialogHelper

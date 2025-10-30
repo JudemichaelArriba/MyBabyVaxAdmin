@@ -86,6 +86,12 @@ class homePage : Fragment() {
             val intent = Intent(requireContext(), SchedulesPage::class.java)
             startActivity(intent)
         }
+
+
+        binding.viewAllBaby.setOnClickListener {
+            val intent = Intent(requireContext(), AllBabiesPage::class.java)
+            startActivity(intent)
+        }
     }
 
     private fun loadUser(user: Users) {
@@ -116,6 +122,7 @@ class homePage : Fragment() {
             binding.profileImage.setImageResource(R.drawable.default_profile)
         }
     }
+
 
     override fun onDestroyView() {
         super.onDestroyView()

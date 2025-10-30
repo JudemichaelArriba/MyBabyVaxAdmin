@@ -8,7 +8,7 @@ import com.example.mybabyvaxadmin.databinding.ItemVaccinesBinding
 import com.example.mybabyvaxadmin.models.Vaccine
 import com.example.mybabyvaxadmin.pages.VaccineInfoPage
 
-class VaccineAdapter(private val vaccines: List<Vaccine>) :
+class VaccineAdapter(private var vaccines: List<Vaccine>) :
     RecyclerView.Adapter<VaccineAdapter.VaccineViewHolder>() {
 
     inner class VaccineViewHolder(val binding: ItemVaccinesBinding) :
@@ -42,6 +42,9 @@ class VaccineAdapter(private val vaccines: List<Vaccine>) :
             holder.itemView.context.startActivity(intent)
         }
     }
-
+    fun updateList(newList: List<Vaccine>) {
+        vaccines = newList
+        notifyDataSetChanged()
+    }
     override fun getItemCount(): Int = vaccines.size
 }

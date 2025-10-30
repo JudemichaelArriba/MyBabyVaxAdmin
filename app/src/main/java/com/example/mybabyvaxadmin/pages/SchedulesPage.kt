@@ -11,7 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mybabyvaxadmin.adapters.ScheduleAdapter
 import com.example.mybabyvaxadmin.databinding.ActivitySchedulesPageBinding
-import com.example.iptfinal.services.DatabaseService
+import com.example.mybabyvaxadmin.services.DatabaseService
 import com.example.mybabyvaxadmin.models.MergedSchedule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -87,7 +87,7 @@ class SchedulesPage : AppCompatActivity() {
     private suspend fun fetchSchedulesSafely(): List<MergedSchedule> =
         suspendCancellableCoroutine { cont ->
             databaseService.fetchAllBabySchedules(object :
-                com.example.iptfinal.interfaces.InterfaceClass.MergedScheduleCallback {
+                com.example.mybabyvaxadmin.interfaces.InterfaceClass.MergedScheduleCallback {
                 override fun onMergedSchedulesLoaded(schedules: List<MergedSchedule>) {
                     cont.resume(schedules)
                 }

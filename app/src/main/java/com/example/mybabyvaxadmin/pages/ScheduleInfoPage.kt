@@ -9,14 +9,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mybabyvaxadmin.adapters.BabyAdapter
 import com.example.mybabyvaxadmin.databinding.ActivityScheduleInfoPageBinding
-import com.example.iptfinal.services.DatabaseService
-import com.example.iptfinal.interfaces.InterfaceClass
+import com.example.mybabyvaxadmin.services.DatabaseService
+import com.example.mybabyvaxadmin.interfaces.InterfaceClass
 import com.example.mybabyvaxadmin.models.Baby
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 class ScheduleInfoPage : AppCompatActivity() {
