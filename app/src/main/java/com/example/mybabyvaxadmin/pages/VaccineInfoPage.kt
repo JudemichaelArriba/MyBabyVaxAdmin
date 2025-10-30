@@ -8,6 +8,7 @@ import com.example.iptfinal.interfaces.InterfaceClass
 import com.example.iptfinal.services.DatabaseService
 import com.example.mybabyvaxadmin.R
 import com.example.mybabyvaxadmin.adapters.DoseAdapter
+import com.example.mybabyvaxadmin.components.DialogHelper
 import com.example.mybabyvaxadmin.databinding.ActivityVaccineInfoPageBinding
 import com.example.mybabyvaxadmin.models.Dose
 
@@ -47,6 +48,9 @@ class VaccineInfoPage : AppCompatActivity() {
             if (vaccineEligibleAge >= 0) "$vaccineEligibleAge" else "-"
 
 
+        binding.backButton.setOnClickListener { finish() }
+
+
         if (vaccineId.isNotEmpty()) {
             fetchDoses(vaccineId)
         } else {
@@ -54,7 +58,37 @@ class VaccineInfoPage : AppCompatActivity() {
         }
 
 
-        binding.backButton.setOnClickListener { finish() }
+        binding.deleteButton.setOnClickListener {
+            DialogHelper.showWarning(
+                this,
+                title = "Delete Vaccine",
+                message = "Are you sure you want to delete this vaccine? This will also remove all related baby schedules.",
+                onConfirm = {
+                    databaseService.deleteVaccine(vaccineId, object : InterfaceClass.StatusCallback {
+                        override fun onSuccess(message: String) {
+                            DialogHelper.showSuccess(
+                                this@VaccineInfoPage,
+                                "Deleted",
+                                message ?: "Vaccine deleted successfully."
+                            ) {
+                                finish()
+                            }
+                        }
+
+                        override fun onError(errorMessage: String) {
+                            DialogHelper.showError(
+                                this@VaccineInfoPage,
+                                "Error",
+                                errorMessage ?: "Failed to delete vaccine."
+                            )
+                        }
+                    })
+                },
+                onCancel = {
+
+                }
+            )
+        }
     }
 
     private fun fetchDoses(vaccineId: String) {

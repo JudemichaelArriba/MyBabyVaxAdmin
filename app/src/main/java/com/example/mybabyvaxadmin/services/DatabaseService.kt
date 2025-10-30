@@ -259,4 +259,65 @@ class DatabaseService {
     }
 
 
+    fun deleteVaccine(vaccineId: String, callback: InterfaceClass.StatusCallback) {
+        databaseVaccines.child(vaccineId)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(vaccineSnapshot: DataSnapshot) {
+                    if (!vaccineSnapshot.exists()) {
+                        callback.onError("Vaccine not found.")
+                        return
+                    }
+
+                    val vaccineName = vaccineSnapshot.child("name").getValue(String::class.java)
+                    if (vaccineName.isNullOrEmpty()) {
+                        callback.onError("Vaccine name not found.")
+                        return
+                    }
+
+
+                    databaseVaccines.child(vaccineId).removeValue()
+                        .addOnSuccessListener {
+
+                            databaseUsers.addListenerForSingleValueEvent(object :
+                                ValueEventListener {
+                                override fun onDataChange(usersSnapshot: DataSnapshot) {
+                                    for (userSnap in usersSnapshot.children) {
+                                        val babiesSnap = userSnap.child("babies")
+                                        for (babySnap in babiesSnap.children) {
+                                            val schedulesSnap = babySnap.child("schedules")
+                                            for (scheduleSnap in schedulesSnap.children) {
+                                                val scheduleName =
+                                                    scheduleSnap.child("vaccineName")
+                                                        .getValue(String::class.java)
+                                                if (scheduleName == vaccineName) {
+                                                    databaseUsers.child(userSnap.key!!)
+                                                        .child("babies")
+                                                        .child(babySnap.key!!)
+                                                        .child("schedules")
+                                                        .child(scheduleSnap.key!!)
+                                                        .removeValue()
+                                                }
+                                            }
+                                        }
+                                    }
+                                    callback.onSuccess("Vaccine and related schedules deleted successfully.")
+                                }
+
+                                override fun onCancelled(error: DatabaseError) {
+                                    callback.onError("Failed to remove schedules: ${error.message}")
+                                }
+                            })
+                        }
+                        .addOnFailureListener { e ->
+                            callback.onError("Failed to delete vaccine: ${e.message}")
+                        }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    callback.onError("Failed to fetch vaccine: ${error.message}")
+                }
+            })
+    }
+
+
 }
