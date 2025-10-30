@@ -3,6 +3,7 @@ package com.example.mybabyvaxadmin.pages
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -10,8 +11,10 @@ import com.example.iptfinal.services.DatabaseService
 import com.example.mybabyvaxadmin.databinding.ActivityEditVaccineInfoPageBinding
 import com.example.mybabyvaxadmin.components.DialogHelper
 import com.example.iptfinal.interfaces.InterfaceClass
+import com.example.mybabyvaxadmin.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class EditVaccineInfoPage : AppCompatActivity() {
 
@@ -28,10 +31,9 @@ class EditVaccineInfoPage : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityEditVaccineInfoPageBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
+        window.statusBarColor = getColor(R.color.mainColor)
 
         spinnersValues()
-
 
         vaccineId = intent.getStringExtra("vaccineId") ?: ""
         initialName = intent.getStringExtra("vaccineName") ?: ""
@@ -40,20 +42,16 @@ class EditVaccineInfoPage : AppCompatActivity() {
         initialDescription = intent.getStringExtra("vaccineDescription") ?: ""
         initialSideEffects = intent.getStringExtra("vaccineSideEffects") ?: ""
 
-
         binding.vaccineNameEditText.setText(initialName)
         binding.descriptionEditText.setText(initialDescription)
         binding.routeAutoCompleteTextView.setText(initialRoute, false)
         binding.typeAutoCompleteTextView.setText(initialType, false)
         binding.sideEffectsEditText.setText(initialSideEffects)
 
-
         binding.saveButton.isEnabled = false
         binding.saveButton.alpha = 0.5f
 
-
         binding.backButton.setOnClickListener { finish() }
-
 
         val watcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -70,13 +68,14 @@ class EditVaccineInfoPage : AppCompatActivity() {
         binding.typeAutoCompleteTextView.addTextChangedListener(watcher)
         binding.sideEffectsEditText.addTextChangedListener(watcher)
 
-
         binding.saveButton.setOnClickListener {
             val newName = binding.vaccineNameEditText.text.toString().trim()
             val newRoute = binding.routeAutoCompleteTextView.text.toString().trim()
             val newType = binding.typeAutoCompleteTextView.text.toString().trim()
             val newDescription = binding.descriptionEditText.text.toString().trim()
             val newSideEffects = binding.sideEffectsEditText.text.toString().trim()
+
+            binding.progressOverlay.visibility = View.VISIBLE
 
             DialogHelper.showWarning(
                 context = this,
@@ -85,7 +84,6 @@ class EditVaccineInfoPage : AppCompatActivity() {
                 onConfirm = {
                     lifecycleScope.launch(Dispatchers.IO) {
                         val dbService = DatabaseService()
-
                         dbService.updateVaccineEverywhere(
                             vaccineId = vaccineId,
                             oldName = initialName,
@@ -97,6 +95,7 @@ class EditVaccineInfoPage : AppCompatActivity() {
                             callback = object : InterfaceClass.StatusCallback {
                                 override fun onSuccess(message: String) {
                                     lifecycleScope.launch(Dispatchers.Main) {
+                                        binding.progressOverlay.visibility = View.GONE
                                         DialogHelper.showSuccess(
                                             this@EditVaccineInfoPage,
                                             "Success",
@@ -109,6 +108,7 @@ class EditVaccineInfoPage : AppCompatActivity() {
 
                                 override fun onError(error: String) {
                                     lifecycleScope.launch(Dispatchers.Main) {
+                                        binding.progressOverlay.visibility = View.GONE
                                         DialogHelper.showError(
                                             this@EditVaccineInfoPage,
                                             "Error",
@@ -121,12 +121,11 @@ class EditVaccineInfoPage : AppCompatActivity() {
                     }
                 },
                 onCancel = {
-
+                    binding.progressOverlay.visibility = View.GONE
                 }
             )
         }
     }
-
 
     private fun spinnersValues() {
         val routeOptions = listOf("Injection", "Oral", "Intranasal", "Topical")

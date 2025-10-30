@@ -3,7 +3,9 @@ package com.example.mybabyvaxadmin.pages
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.iptfinal.interfaces.InterfaceClass
 import com.example.iptfinal.services.DatabaseService
@@ -12,6 +14,11 @@ import com.example.mybabyvaxadmin.adapters.DoseAdapter
 import com.example.mybabyvaxadmin.components.DialogHelper
 import com.example.mybabyvaxadmin.databinding.ActivityVaccineInfoPageBinding
 import com.example.mybabyvaxadmin.models.Dose
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlin.coroutines.resumeWithException
 
 class VaccineInfoPage : AppCompatActivity() {
     private lateinit var binding: ActivityVaccineInfoPageBinding
@@ -25,11 +32,9 @@ class VaccineInfoPage : AppCompatActivity() {
         setContentView(binding.root)
         window.statusBarColor = getColor(R.color.mainColor)
 
-
         binding.doseRecycle.layoutManager = LinearLayoutManager(this)
         doseAdapter = DoseAdapter(doseList)
         binding.doseRecycle.adapter = doseAdapter
-
 
         val vaccineId = intent.getStringExtra("vaccineId") ?: ""
         val vaccineName = intent.getStringExtra("vaccineName") ?: "-"
@@ -39,15 +44,12 @@ class VaccineInfoPage : AppCompatActivity() {
         val vaccineSideEffects = intent.getStringExtra("vaccineSideEffects") ?: "-"
         val vaccineEligibleAge = intent.getDoubleExtra("vaccineEligibleAge", -1.0)
 
-
         binding.vaccineName.text = vaccineName
         binding.routeTv.text = vaccineRoute
         binding.typeTv.text = vaccineType
         binding.descriptionTv.text = vaccineDescription
         binding.sideEffectsTv.text = vaccineSideEffects
-        binding.eligibleAgeTv.text =
-            if (vaccineEligibleAge >= 0) "$vaccineEligibleAge" else "-"
-
+        binding.eligibleAgeTv.text = if (vaccineEligibleAge >= 0) "$vaccineEligibleAge" else "-"
 
         binding.editButton.setOnClickListener {
             val intent = Intent(this, EditVaccineInfoPage::class.java)
@@ -63,15 +65,14 @@ class VaccineInfoPage : AppCompatActivity() {
 
         binding.backButton.setOnClickListener { finish() }
 
-
         if (vaccineId.isNotEmpty()) {
             fetchDoses(vaccineId)
         } else {
             Log.e("VaccineInfoPage", "Vaccine ID is empty, cannot load doses.")
         }
 
-
         binding.deleteButton.setOnClickListener {
+            binding.progressBarDose.visibility = View.VISIBLE
             DialogHelper.showWarning(
                 this,
                 title = "Delete Vaccine",
@@ -81,16 +82,16 @@ class VaccineInfoPage : AppCompatActivity() {
                         vaccineId,
                         object : InterfaceClass.StatusCallback {
                             override fun onSuccess(message: String) {
+                                binding.progressBarDose.visibility = View.GONE
                                 DialogHelper.showSuccess(
                                     this@VaccineInfoPage,
                                     "Deleted",
                                     message ?: "Vaccine deleted successfully."
-                                ) {
-                                    finish()
-                                }
+                                ) { finish() }
                             }
 
                             override fun onError(errorMessage: String) {
+                                binding.progressBarDose.visibility = View.GONE
                                 DialogHelper.showError(
                                     this@VaccineInfoPage,
                                     "Error",
@@ -99,27 +100,42 @@ class VaccineInfoPage : AppCompatActivity() {
                             }
                         })
                 },
-                onCancel = {
-
-                }
+                onCancel = {}
             )
         }
     }
 
     private fun fetchDoses(vaccineId: String) {
-        databaseService.fetchDosesByVaccineId(vaccineId, object : InterfaceClass.DoseListCallback {
-            override fun onDosesLoaded(doses: List<Dose>) {
+        binding.progressBarDose.visibility = View.VISIBLE
+        lifecycleScope.launch {
+            try {
+                val doses = withContext(Dispatchers.IO) {
+                    suspendCancellableCoroutine<List<Dose>> { cont ->
+                        databaseService.fetchDosesByVaccineId(
+                            vaccineId,
+                            object : InterfaceClass.DoseListCallback {
+                                override fun onDosesLoaded(doses: List<Dose>) {
+                                    cont.resume(doses) {}
+                                }
+
+                                override fun onError(errorMessage: String?) {
+                                    cont.resumeWithException(
+                                        Exception(
+                                            errorMessage ?: "Failed to fetch doses"
+                                        )
+                                    )
+                                }
+                            })
+                    }
+                }
                 doseList.clear()
                 doseList.addAll(doses)
                 doseAdapter.notifyDataSetChanged()
-                Log.d("VaccineInfoPage", "Loaded ${doses.size} doses.")
+            } catch (e: Exception) {
+                Log.e("VaccineInfoPage", "Failed to load doses: ${e.message}")
+            } finally {
+                binding.progressBarDose.visibility = View.GONE
             }
-
-            override fun onError(errorMessage: String?) {
-                Log.e("VaccineInfoPage", "Failed to load doses: $errorMessage")
-            }
-        })
+        }
     }
-
-
 }

@@ -77,12 +77,15 @@ class vaccinesPage : Fragment() {
     }
 
     private fun fetchVaccines() {
+        binding.progressBar.visibility = View.VISIBLE
         lifecycleScope.launch(Dispatchers.Main) {
             try {
                 val vaccines = getAllVaccines()
                 binding.vaccinesRecycleview.adapter = VaccineAdapter(vaccines)
             } catch (e: Exception) {
                 e.printStackTrace()
+            } finally {
+                binding.progressBar.visibility = View.GONE
             }
         }
     }
