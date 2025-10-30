@@ -8,6 +8,7 @@ import com.example.mybabyvaxadmin.models.MergedSchedule
 
 import com.example.mybabyvaxadmin.models.Users
 import com.example.mybabyvaxadmin.models.Vaccine
+import com.example.mybabyvaxadmin.models.VaccineWithDoses
 import com.google.firebase.database.*
 
 class DatabaseService {
@@ -210,5 +211,39 @@ class DatabaseService {
             }
         })
     }
+
+
+    fun fetchAllVaccines(callback: InterfaceClass.VaccineListCallback) {
+        databaseVaccines.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val vaccineList = mutableListOf<VaccineWithDoses>()
+
+                for (vaccineSnap in snapshot.children) {
+                    val vaccine = vaccineSnap.getValue(Vaccine::class.java)
+                    if (vaccine != null) {
+                        val dosesList = mutableListOf<Dose>()
+
+                        if (vaccineSnap.hasChild("doses")) {
+                            for (doseSnap in vaccineSnap.child("doses").children) {
+                                val dose = doseSnap.getValue(Dose::class.java)
+                                if (dose != null) dosesList.add(dose)
+                            }
+                        }
+
+                        vaccineList.add(VaccineWithDoses(vaccine, dosesList))
+                    }
+                }
+
+                callback.onVaccinesLoaded(vaccineList)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback.onError(error.message)
+            }
+        })
+    }
+
+
+
 
 }
