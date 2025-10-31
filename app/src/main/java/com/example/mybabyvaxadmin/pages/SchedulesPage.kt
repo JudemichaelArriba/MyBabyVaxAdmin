@@ -9,10 +9,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.mybabyvaxadmin.adapters.ScheduleAdapter
 import com.example.mybabyvaxadmin.databinding.ActivitySchedulesPageBinding
-import com.example.mybabyvaxadmin.services.DatabaseService
 import com.example.mybabyvaxadmin.models.MergedSchedule
+import com.example.mybabyvaxadmin.services.DatabaseService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -31,19 +32,16 @@ class SchedulesPage : AppCompatActivity() {
         binding = ActivitySchedulesPageBinding.inflate(layoutInflater)
         setContentView(binding.root)
         window.statusBarColor = getColor(com.example.mybabyvaxadmin.R.color.mainColor)
-
+        binding.swipeRefresh.setColorSchemeColors(getColor(com.example.mybabyvaxadmin.R.color.mainColor))
         setupRecyclerView()
         setupSearchBarAnimation()
         setupBackButton()
-
-
+        setupSwipeRefresh()
         loadSchedules()
     }
 
-
     private fun setupRecyclerView() {
         adapter = ScheduleAdapter(emptyList()) { schedule ->
-
             val intent = Intent(this, ScheduleInfoPage::class.java).apply {
                 putExtra("vaccineName", schedule.vaccineName)
                 putExtra("doseName", schedule.doseName)
@@ -52,28 +50,32 @@ class SchedulesPage : AppCompatActivity() {
             }
             startActivity(intent)
         }
-
         binding.scheduleRecyclerView.layoutManager = LinearLayoutManager(this)
         binding.scheduleRecyclerView.adapter = adapter
     }
 
+    private fun setupSwipeRefresh() {
+        binding.swipeRefresh.setOnRefreshListener {
+            loadSchedules()
+        }
+    }
 
     private fun loadSchedules() {
+
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 launch(Dispatchers.Main) { binding.loading.visibility = View.VISIBLE }
-
                 val schedules = fetchSchedulesSafely()
-
                 launch(Dispatchers.Main) {
                     adapter.updateList(schedules)
                     binding.loading.visibility = View.GONE
+                    binding.swipeRefresh.isRefreshing = false
                 }
-
             } catch (e: Exception) {
                 Log.e("SchedulesPage", "Error fetching schedules: ${e.message}")
                 launch(Dispatchers.Main) {
                     binding.loading.visibility = View.GONE
+                    binding.swipeRefresh.isRefreshing = false
                     Toast.makeText(
                         this@SchedulesPage,
                         e.message ?: "Error loading schedules",
@@ -91,19 +93,16 @@ class SchedulesPage : AppCompatActivity() {
                 override fun onMergedSchedulesLoaded(schedules: List<MergedSchedule>) {
                     cont.resume(schedules)
                 }
-
                 override fun onError(error: String) {
                     cont.resumeWithException(Exception(error))
                 }
             })
         }
 
-
     private fun setupSearchBarAnimation() {
         val searchContainer = binding.searchContainer
         val searchIcon = binding.searchIcon
         val searchInput = binding.searchInput
-
         searchIcon.setOnClickListener {
             if (!isExpanded) {
                 expandSearchBar(searchContainer)
@@ -147,7 +146,6 @@ class SchedulesPage : AppCompatActivity() {
         animator.duration = 300
         animator.start()
     }
-
 
     private fun setupBackButton() {
         binding.backButton.setOnClickListener { finish() }
