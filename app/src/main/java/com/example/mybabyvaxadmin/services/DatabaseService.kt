@@ -75,24 +75,43 @@ class DatabaseService {
     }
 
 
-    fun addVaccine(vaccine: Vaccine, callback: InterfaceClass.StatusCallbackWithId) {
-        val vaccineId = databaseVaccines.push().key
+    fun checkVaccineExists(vaccineName: String, callback: (exists: Boolean) -> Unit) {
+        databaseVaccines.orderByChild("name").equalTo(vaccineName)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    callback(snapshot.exists())
+                }
 
-        if (vaccineId == null) {
-            callback.onFailure("Failed to generate vaccine ID.")
-            return
-        }
-
-        vaccine.id = vaccineId
-        databaseVaccines.child(vaccineId).setValue(vaccine)
-            .addOnSuccessListener {
-                callback.onSuccess("Vaccine saved successfully!", vaccineId)
-            }
-            .addOnFailureListener { e ->
-                callback.onFailure("Failed to save vaccine: ${e.message}")
-            }
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("DatabaseService", "Error checking vaccine: ${error.message}")
+                    callback(false)
+                }
+            })
     }
 
+
+    fun addVaccine(vaccine: Vaccine, callback: InterfaceClass.StatusCallbackWithId) {
+        checkVaccineExists(vaccine.name.toString()) { exists ->
+            if (exists) {
+                callback.onFailure("Vaccine '${vaccine.name}' already exists.")
+            } else {
+                val vaccineId = databaseVaccines.push().key
+                if (vaccineId == null) {
+                    callback.onFailure("Failed to generate vaccine ID.")
+                    return@checkVaccineExists
+                }
+
+                vaccine.id = vaccineId
+                databaseVaccines.child(vaccineId).setValue(vaccine)
+                    .addOnSuccessListener {
+                        callback.onSuccess("Vaccine saved successfully!", vaccineId)
+                    }
+                    .addOnFailureListener { e ->
+                        callback.onFailure("Failed to save vaccine: ${e.message}")
+                    }
+            }
+        }
+    }
 
     fun addVaccineDosage(vaccineId: String, dose: Dose, callback: InterfaceClass.StatusCallback) {
         val doseId = databaseVaccines.child(vaccineId).child("doses").push().key
@@ -332,65 +351,66 @@ class DatabaseService {
         newSideEffects: String,
         callback: InterfaceClass.StatusCallback
     ) {
-        val vaccineData = mapOf(
-            "name" to newName,
-            "route" to newRoute,
-            "type" to newType,
-            "description" to newDescription,
-            "sideEffects" to newSideEffects,
 
+        checkVaccineExists(newName) { exists ->
+            if (exists && oldName != newName) {
+                callback.onError("A vaccine with the name '$newName' already exists.")
+                return@checkVaccineExists
+            }
+
+            val vaccineData = mapOf(
+                "name" to newName,
+                "route" to newRoute,
+                "type" to newType,
+                "description" to newDescription,
+                "sideEffects" to newSideEffects
             )
 
-        val database = FirebaseDatabase.getInstance().reference
+            val database = FirebaseDatabase.getInstance().reference
 
 
-        database.child("vaccines").child(vaccineId).updateChildren(vaccineData)
-            .addOnSuccessListener {
-                Log.d("VaccineUpdate", "Vaccine updated in /vaccines")
+            database.child("vaccines").child(vaccineId).updateChildren(vaccineData)
+                .addOnSuccessListener {
+                    Log.d("VaccineUpdate", "Vaccine updated in /vaccines")
 
 
-                database.child("users").get().addOnSuccessListener { usersSnapshot ->
-                    for (userSnap in usersSnapshot.children) {
-                        val babiesSnap = userSnap.child("babies")
-                        for (babySnap in babiesSnap.children) {
-                            val schedulesSnap = babySnap.child("schedules")
-                            for (scheduleSnap in schedulesSnap.children) {
-                                val vaccineName =
-                                    scheduleSnap.child("vaccineName").getValue(String::class.java)
-                                if (vaccineName == oldName || scheduleSnap.key == oldName) {
-                                    val scheduleRef = scheduleSnap.ref
-                                    val updatedSchedule = mapOf(
-                                        "vaccineName" to newName,
-                                        "description" to newDescription,
-                                        "route" to newRoute,
-                                        "sideEffects" to newSideEffects,
-                                        "vaccineType" to newType
-                                    )
+                    database.child("users").get().addOnSuccessListener { usersSnapshot ->
+                        for (userSnap in usersSnapshot.children) {
+                            val babiesSnap = userSnap.child("babies")
+                            for (babySnap in babiesSnap.children) {
+                                val schedulesSnap = babySnap.child("schedules")
+                                for (scheduleSnap in schedulesSnap.children) {
+                                    val vaccineNameInSchedule =
+                                        scheduleSnap.child("vaccineName")
+                                            .getValue(String::class.java)
+                                    if (vaccineNameInSchedule == oldName) {
+                                        val scheduleRef = scheduleSnap.ref
+                                        val parentRef = scheduleRef.parent
+                                        val oldData = scheduleSnap.value
 
 
-                                    val parentRef = scheduleRef.parent
-                                    val oldData = scheduleSnap.value
-                                    parentRef?.child(newName)?.setValue(oldData)
-                                        ?.addOnSuccessListener {
-                                            parentRef.child(oldName).removeValue()
-                                            parentRef.child(newName).updateChildren(updatedSchedule)
-                                            Log.d(
-                                                "VaccineUpdate",
-                                                "Renamed schedule $oldName → $newName for ${babySnap.key}"
-                                            )
-                                        }
+                                        parentRef?.child(newName)?.setValue(oldData)
+                                            ?.addOnSuccessListener {
+                                                parentRef.child(oldName).removeValue()
+                                                parentRef.child(newName).updateChildren(vaccineData)
+                                                Log.d(
+                                                    "VaccineUpdate",
+                                                    "Updated schedule $oldName → $newName for ${babySnap.key}"
+                                                )
+                                            }
+                                    }
                                 }
                             }
                         }
+                        callback.onSuccess("Vaccine and related baby schedules updated successfully.")
+                    }.addOnFailureListener {
+                        callback.onError("Failed to update baby schedules: ${it.message}")
                     }
-                    callback.onSuccess("Vaccine and related baby schedules updated successfully.")
-                }.addOnFailureListener {
-                    callback.onError("Failed to update baby schedules: ${it.message}")
                 }
-            }
-            .addOnFailureListener {
-                callback.onError("Failed to update vaccine record: ${it.message}")
-            }
+                .addOnFailureListener {
+                    callback.onError("Failed to update vaccine record: ${it.message}")
+                }
+        }
     }
 
 
@@ -424,13 +444,6 @@ class DatabaseService {
     }
 
 
-
-
-
-
-
-
-
     fun fetchDashboardCounts(callback: (Result<DashboardCounts>) -> Unit) {
         databaseUsers.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
@@ -450,8 +463,11 @@ class DatabaseService {
                         for (vaccineSnap in schedulesSnap.children) {
                             val dosesSnap = vaccineSnap.child("doses")
                             for (doseSnap in dosesSnap.children) {
-                                val completed = doseSnap.child("completed").getValue(Boolean::class.java) ?: false
-                                val visible = doseSnap.child("visible").getValue(Boolean::class.java) ?: true
+                                val completed =
+                                    doseSnap.child("completed").getValue(Boolean::class.java)
+                                        ?: false
+                                val visible =
+                                    doseSnap.child("visible").getValue(Boolean::class.java) ?: true
                                 if (!completed && visible) {
                                     upcomingVaccines++
                                     break
@@ -469,7 +485,6 @@ class DatabaseService {
             }
         })
     }
-
 
 
 }

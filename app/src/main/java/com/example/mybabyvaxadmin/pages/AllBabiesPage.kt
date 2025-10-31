@@ -42,6 +42,9 @@ class AllBabiesPage : AppCompatActivity() {
         loadBabies()
         setupSearchBar()
         setupSwipeRefresh()
+        binding.backButton.setOnClickListener {
+            finish()
+        }
     }
 
     private fun setupSwipeRefresh() {
@@ -129,7 +132,11 @@ class AllBabiesPage : AppCompatActivity() {
                 launch(Dispatchers.Main) {
                     binding.loading.visibility = View.GONE
                     binding.swipeRefresh.isRefreshing = false
-                    Toast.makeText(this@AllBabiesPage, e.message ?: "Error loading babies", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@AllBabiesPage,
+                        e.message ?: "Error loading babies",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }
@@ -137,10 +144,12 @@ class AllBabiesPage : AppCompatActivity() {
 
     private suspend fun fetchBabies(): List<Baby> =
         suspendCancellableCoroutine { cont ->
-            databaseService.fetchAllBabies(object : com.example.mybabyvaxadmin.interfaces.InterfaceClass.AllBabiesCallback {
+            databaseService.fetchAllBabies(object :
+                com.example.mybabyvaxadmin.interfaces.InterfaceClass.AllBabiesCallback {
                 override fun onBabiesLoaded(babies: List<Baby>) {
                     cont.resume(babies)
                 }
+
                 override fun onError(message: String) {
                     cont.resumeWithException(Exception(message))
                 }

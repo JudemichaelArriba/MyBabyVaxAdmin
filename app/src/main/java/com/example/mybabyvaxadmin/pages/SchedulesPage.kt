@@ -3,13 +3,13 @@ package com.example.mybabyvaxadmin.pages
 import android.animation.ValueAnimator
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.mybabyvaxadmin.adapters.ScheduleAdapter
 import com.example.mybabyvaxadmin.databinding.ActivitySchedulesPageBinding
 import com.example.mybabyvaxadmin.models.MergedSchedule
@@ -26,6 +26,7 @@ class SchedulesPage : AppCompatActivity() {
     private lateinit var adapter: ScheduleAdapter
     private val databaseService = DatabaseService()
     private var isExpanded = false
+    private var allSched: List<MergedSchedule> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,9 +35,9 @@ class SchedulesPage : AppCompatActivity() {
         window.statusBarColor = getColor(com.example.mybabyvaxadmin.R.color.mainColor)
         binding.swipeRefresh.setColorSchemeColors(getColor(com.example.mybabyvaxadmin.R.color.mainColor))
         setupRecyclerView()
-        setupSearchBarAnimation()
+        setupSearchBar()
         setupBackButton()
-        setupSwipeRefresh()
+        binding.swipeRefresh.setOnRefreshListener { loadSchedules() }
         loadSchedules()
     }
 
@@ -54,25 +55,18 @@ class SchedulesPage : AppCompatActivity() {
         binding.scheduleRecyclerView.adapter = adapter
     }
 
-    private fun setupSwipeRefresh() {
-        binding.swipeRefresh.setOnRefreshListener {
-            loadSchedules()
-        }
-    }
-
     private fun loadSchedules() {
-
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 launch(Dispatchers.Main) { binding.loading.visibility = View.VISIBLE }
                 val schedules = fetchSchedulesSafely()
+                allSched = schedules
                 launch(Dispatchers.Main) {
-                    adapter.updateList(schedules)
+                    adapter.updateList(allSched)
                     binding.loading.visibility = View.GONE
                     binding.swipeRefresh.isRefreshing = false
                 }
             } catch (e: Exception) {
-                Log.e("SchedulesPage", "Error fetching schedules: ${e.message}")
                 launch(Dispatchers.Main) {
                     binding.loading.visibility = View.GONE
                     binding.swipeRefresh.isRefreshing = false
@@ -93,40 +87,55 @@ class SchedulesPage : AppCompatActivity() {
                 override fun onMergedSchedulesLoaded(schedules: List<MergedSchedule>) {
                     cont.resume(schedules)
                 }
+
                 override fun onError(error: String) {
                     cont.resumeWithException(Exception(error))
                 }
             })
         }
 
-    private fun setupSearchBarAnimation() {
-        val searchContainer = binding.searchContainer
+    private fun setupSearchBar() {
+        val searchBar = binding.searchContainer
         val searchIcon = binding.searchIcon
         val searchInput = binding.searchInput
+
         searchIcon.setOnClickListener {
             if (!isExpanded) {
-                expandSearchBar(searchContainer)
-                searchInput.visibility = View.VISIBLE
-                searchInput.alpha = 0f
-                searchInput.animate().alpha(1f).setDuration(200).start()
+                searchBar.post {
+                    expandSearchBar(searchBar)
+                    searchInput.visibility = View.VISIBLE
+                    searchInput.alpha = 0f
+                    searchInput.animate().alpha(1f).setDuration(200).start()
+                }
             } else {
-                collapseSearchBar(searchContainer)
+                collapseSearchBar(searchBar)
                 searchInput.animate().alpha(0f).setDuration(200)
-                    .withEndAction { searchInput.visibility = View.GONE }
-                    .start()
+                    .withEndAction { searchInput.visibility = View.GONE }.start()
+                searchInput.text?.clear()
+                adapter.updateList(allSched)
             }
             isExpanded = !isExpanded
         }
+
+        searchInput.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s.toString().trim().lowercase()
+                val filteredList = allSched.filter { schedule ->
+                    schedule.vaccineName.lowercase().contains(query)
+                }
+                adapter.updateList(filteredList)
+            }
+        })
     }
 
     private fun expandSearchBar(view: View) {
         val startWidth = view.width
-        val endWidth = 600
-        val animator = ValueAnimator.ofInt(startWidth, endWidth)
+        val animator = ValueAnimator.ofInt(startWidth, 500)
         animator.addUpdateListener {
-            val value = it.animatedValue as Int
             val params = view.layoutParams
-            params.width = value
+            params.width = it.animatedValue as Int
             view.layoutParams = params
         }
         animator.duration = 300
@@ -135,12 +144,10 @@ class SchedulesPage : AppCompatActivity() {
 
     private fun collapseSearchBar(view: View) {
         val startWidth = view.width
-        val endWidth = 120
-        val animator = ValueAnimator.ofInt(startWidth, endWidth)
+        val animator = ValueAnimator.ofInt(startWidth, 120)
         animator.addUpdateListener {
-            val value = it.animatedValue as Int
             val params = view.layoutParams
-            params.width = value
+            params.width = it.animatedValue as Int
             view.layoutParams = params
         }
         animator.duration = 300

@@ -142,8 +142,11 @@ class AddDosagePage : AppCompatActivity() {
             }
 
             override fun onFailure(error: String) {
-                Log.d("Failed adding vaccine", error)
-                Toast.makeText(this@AddDosagePage, error, Toast.LENGTH_SHORT).show()
+                DialogHelper.showError(
+                    this@AddDosagePage,
+                    "Error",
+                    error
+                )
             }
         })
 
