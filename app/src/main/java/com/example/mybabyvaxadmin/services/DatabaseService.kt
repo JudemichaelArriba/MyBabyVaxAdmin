@@ -4,6 +4,7 @@ import android.util.Log
 
 import com.example.mybabyvaxadmin.interfaces.InterfaceClass
 import com.example.mybabyvaxadmin.models.Baby
+import com.example.mybabyvaxadmin.models.DashboardCounts
 import com.example.mybabyvaxadmin.models.Dose
 import com.example.mybabyvaxadmin.models.MergedSchedule
 
@@ -421,6 +422,54 @@ class DatabaseService {
             }
         })
     }
+
+
+
+
+
+
+
+
+
+    fun fetchDashboardCounts(callback: (Result<DashboardCounts>) -> Unit) {
+        databaseUsers.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                var totalBabies = 0
+                var upcomingVaccines = 0
+                var totalUsers = 0
+
+                for (userSnap in snapshot.children) {
+                    val user = userSnap.getValue(Users::class.java)
+                    if (user?.role == "User") totalUsers++
+
+                    val babiesSnap = userSnap.child("babies")
+                    for (babySnap in babiesSnap.children) {
+                        totalBabies++
+
+                        val schedulesSnap = babySnap.child("schedules")
+                        for (vaccineSnap in schedulesSnap.children) {
+                            val dosesSnap = vaccineSnap.child("doses")
+                            for (doseSnap in dosesSnap.children) {
+                                val completed = doseSnap.child("completed").getValue(Boolean::class.java) ?: false
+                                val visible = doseSnap.child("visible").getValue(Boolean::class.java) ?: true
+                                if (!completed && visible) {
+                                    upcomingVaccines++
+                                    break
+                                }
+                            }
+                        }
+                    }
+                }
+
+                callback(Result.success(DashboardCounts(totalBabies, upcomingVaccines, totalUsers)))
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(Result.failure(Exception(error.message)))
+            }
+        })
+    }
+
 
 
 }

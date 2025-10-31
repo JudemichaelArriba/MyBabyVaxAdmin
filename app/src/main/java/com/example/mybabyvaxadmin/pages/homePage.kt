@@ -14,6 +14,7 @@ import com.example.mybabyvaxadmin.R
 import com.example.mybabyvaxadmin.databinding.FragmentHomePageBinding
 import com.example.mybabyvaxadmin.models.Users
 import com.example.iptfinal.services.SessionManager
+import com.example.mybabyvaxadmin.services.DatabaseService
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +29,7 @@ class homePage : Fragment() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var sessionManager: SessionManager
+    private val databaseService = DatabaseService()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -48,7 +50,6 @@ class homePage : Fragment() {
 
         val cachedUser = sessionManager.getUser()
         if (cachedUser != null) {
-
             loadUser(cachedUser)
         }
 
@@ -56,7 +57,6 @@ class homePage : Fragment() {
         if (currentUser != null) {
             val userRef =
                 FirebaseDatabase.getInstance().getReference("users").child(currentUser.uid)
-
 
             viewLifecycleOwner.lifecycleScope.launch {
                 val user: Users? = try {
@@ -71,7 +71,6 @@ class homePage : Fragment() {
 
                 if (_binding == null || user == null) return@launch
 
-
                 sessionManager.saveUser(user)
                 loadUser(user)
             }
@@ -80,13 +79,30 @@ class homePage : Fragment() {
             binding.profileImage.setImageResource(R.drawable.default_profile)
         }
 
-
+        lifecycleScope.launch(Dispatchers.IO) {
+            databaseService.fetchDashboardCounts { result ->
+                if (!isAdded || _binding == null) return@fetchDashboardCounts
+                lifecycleScope.launch(Dispatchers.Main) {
+                    result.onSuccess { counts ->
+                        if (_binding == null) return@launch
+                        binding.totalBabiesCountTv.text = counts.totalBabies.toString()
+                        binding.upcomingVaccCountTv.text = counts.upcomingVaccines.toString()
+                        binding.totalAccountRegisteredTv.text = counts.totalUsers.toString()
+                    }
+                    result.onFailure {
+                        if (_binding == null) return@launch
+                        binding.totalBabiesCountTv.text = "0"
+                        binding.upcomingVaccCountTv.text = "0"
+                        binding.totalAccountRegisteredTv.text = "0"
+                    }
+                }
+            }
+        }
 
         binding.viewAllSched.setOnClickListener {
             val intent = Intent(requireContext(), SchedulesPage::class.java)
             startActivity(intent)
         }
-
 
         binding.viewAllBaby.setOnClickListener {
             val intent = Intent(requireContext(), AllBabiesPage::class.java)
@@ -106,7 +122,6 @@ class homePage : Fragment() {
             try {
                 val image =
                     if (user.profilePic.startsWith("/9j") || user.profilePic.contains("base64")) {
-
                         "data:image/jpeg;base64,${user.profilePic}"
                     } else user.profilePic
 
@@ -122,7 +137,6 @@ class homePage : Fragment() {
             binding.profileImage.setImageResource(R.drawable.default_profile)
         }
     }
-
 
     override fun onDestroyView() {
         super.onDestroyView()

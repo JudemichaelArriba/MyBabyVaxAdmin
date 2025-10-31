@@ -131,14 +131,10 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginBottom="8dp">
 
-                                <View
-                                    android:layout_width="46dp"
-                                    android:layout_height="56dp"
-                                    android:alpha="0.2"
-                                    android:background="@drawable/rounded_bg_main_color" />
 
 
                                 <TextView
+                                    android:id="@+id/upcomingVaccCountTv"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:layout_gravity="center"
@@ -184,20 +180,17 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginBottom="8dp">
 
-                                <View
-                                    android:layout_width="46dp"
-                                    android:layout_height="56dp"
-                                    android:alpha="0.2"
-                                    android:background="@drawable/rounded_bg_main_color2" />
+
 
 
                                 <TextView
+                                    android:id="@+id/totalBabiesCountTv"
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:layout_gravity="center"
                                     android:gravity="center"
                                     android:text="0"
-                                    android:textColor="@color/green"
+                                    android:textColor="@color/mainColor"
                                     android:textSize="30sp" />
 
 
@@ -240,14 +233,10 @@
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp">
 
-                            <View
-                                android:layout_width="46dp"
-                                android:layout_height="56dp"
-                                android:alpha="0.2"
-                                android:background="@drawable/rounded_bg_main_color" />
 
 
                             <TextView
+                                android:id="@+id/totalAccountRegisteredTv"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="center"
