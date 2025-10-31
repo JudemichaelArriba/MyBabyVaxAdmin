@@ -1,6 +1,7 @@
 package com.example.mybabyvaxadmin.adapters
 
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -13,7 +14,10 @@ import android.graphics.PorterDuff
 import android.util.Base64
 import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat
+import com.example.mybabyvaxadmin.adapters.VaccineAdapter.VaccineViewHolder
 import com.example.mybabyvaxadmin.models.Vaccine
+import com.example.mybabyvaxadmin.pages.BabyInfoPage
+import com.google.gson.Gson
 import java.util.Calendar
 import kotlin.apply
 import kotlin.text.isEmpty
@@ -85,10 +89,11 @@ class BabyAdapter : RecyclerView.Adapter<BabyAdapter.BabyViewHolder>() {
                 }
             }
 
-
-
-            btnMoreOptions.setOnClickListener {
-
+            root.setOnClickListener {
+                val context = holder.itemView.context
+                val intent = Intent(context, BabyInfoPage::class.java)
+                intent.putExtra("baby_id", baby.id)
+                context.startActivity(intent)
             }
         }
     }

@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     id("com.google.gms.google-services")
     id("org.jetbrains.kotlin.kapt")
+
 }
 
 android {
@@ -44,7 +45,7 @@ android {
 }
 
 dependencies {
-
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -53,7 +54,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
+    implementation("com.google.code.gson:gson:2.10.1")
 
     implementation("com.github.TutorialsAndroid:KAlertDialog:v7.0.19")
 
@@ -81,6 +82,9 @@ dependencies {
 //    implementation("com.google.android.gms:play-services-auth:21.4.0")
 
     implementation("com.google.android.material:material:1.9.0")
+
+
+
 
 
     implementation(libs.google.auth)

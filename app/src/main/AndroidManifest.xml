@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyBabyVaxAdmin">
         <activity
+            android:name=".pages.BabyInfoPage"
+            android:exported="false" />
+        <activity
             android:name=".pages.AllBabiesPage"
             android:exported="false" />
         <activity

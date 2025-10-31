@@ -11,6 +11,8 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.example.mybabyvaxadmin.R
 import com.example.mybabyvaxadmin.adapters.VaccineAdapter
 import com.example.mybabyvaxadmin.databinding.FragmentVaccinesPageBinding
 import com.example.mybabyvaxadmin.models.Vaccine
@@ -29,26 +31,31 @@ class vaccinesPage : Fragment() {
 
     private var isExpanded = false
     private val databaseService = DatabaseService()
-
-
-    private var allVaccines: List<Vaccine> = emptyList()
+    private var allVaccines: MutableList<Vaccine> = mutableListOf()
     private lateinit var vaccineAdapter: VaccineAdapter
+    private var isDataLoaded = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+
         _binding = FragmentVaccinesPageBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
 
+
+        super.onViewCreated(view, savedInstanceState)
+        binding.swipeRefresh.setColorSchemeColors(
+            resources.getColor(R.color.mainColor)
+        )
         setupSearchBar()
         setupAddButton()
         setupRecyclerView()
-        fetchVaccines()
+        setupSwipeRefresh()
+        if (!isDataLoaded) fetchVaccines()
     }
 
     private fun setupSearchBar() {
@@ -73,7 +80,6 @@ class vaccinesPage : Fragment() {
             isExpanded = !isExpanded
         }
 
-
         searchInput.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {}
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -97,33 +103,47 @@ class vaccinesPage : Fragment() {
 
     private fun setupRecyclerView() {
         binding.vaccinesRecycleview.layoutManager = LinearLayoutManager(requireContext())
-        vaccineAdapter = VaccineAdapter(emptyList())
+        vaccineAdapter = VaccineAdapter(allVaccines)
         binding.vaccinesRecycleview.adapter = vaccineAdapter
+    }
+
+    private fun setupSwipeRefresh() {
+        binding.swipeRefresh.setOnRefreshListener {
+            fetchVaccines()
+        }
     }
 
     private fun fetchVaccines() {
         binding.progressBar.visibility = View.VISIBLE
-        lifecycleScope.launch(Dispatchers.Main) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
             try {
-                allVaccines = getAllVaccines()
-                vaccineAdapter.updateList(allVaccines)
+                val vaccines = getAllVaccinesSafe()
+                if (isAdded) {
+                    allVaccines.clear()
+                    allVaccines.addAll(vaccines)
+                    vaccineAdapter.updateList(allVaccines)
+                    isDataLoaded = true
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
-                binding.progressBar.visibility = View.GONE
+                if (isAdded) {
+                    binding.progressBar.visibility = View.GONE
+                    binding.swipeRefresh.isRefreshing = false
+                }
             }
         }
     }
 
-    private suspend fun getAllVaccines(): List<Vaccine> =
+    private suspend fun getAllVaccinesSafe(): List<Vaccine> =
         suspendCancellableCoroutine { cont ->
             databaseService.fetchAllVaccines(object : InterfaceClass.VaccineListCallback {
                 override fun onVaccinesLoaded(vaccines: List<Vaccine>) {
-                    cont.resume(vaccines)
+                    if (cont.isActive) cont.resume(vaccines)
                 }
 
                 override fun onError(message: String) {
-                    cont.resumeWithException(Exception(message))
+                    if (cont.isActive) cont.resumeWithException(Exception(message))
                 }
             })
         }
