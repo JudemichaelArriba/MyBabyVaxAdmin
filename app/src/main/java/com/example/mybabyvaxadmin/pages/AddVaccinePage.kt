@@ -21,7 +21,7 @@ class AddVaccinePage : AppCompatActivity() {
     private lateinit var binding: ActivityAddVaccinePageBinding
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
 
         binding = ActivityAddVaccinePageBinding.inflate(layoutInflater)
 
@@ -41,8 +41,6 @@ class AddVaccinePage : AppCompatActivity() {
         }
     }
 
-
-
     private fun spinnersValues() {
         val routeOptions = listOf("Injection", "Oral", "Intranasal", "Topical")
         val typeOptions = listOf(
@@ -56,9 +54,7 @@ class AddVaccinePage : AppCompatActivity() {
         )
         val ageUnitOptions = listOf("Days", "Weeks", "Months", "Years")
 
-
         binding.apply {
-
             routeAutoCompleteTextView.setAdapter(
                 ArrayAdapter(this@AddVaccinePage, android.R.layout.simple_list_item_1, routeOptions)
             )
@@ -70,18 +66,10 @@ class AddVaccinePage : AppCompatActivity() {
                 android.R.layout.simple_spinner_dropdown_item,
                 ageUnitOptions
             )
-
         }
-
     }
 
-
-    /**
-     * Save button for the vaccine however if the admin checked the dosage box it will redirect to the
-     * add dosage but the vaccine is already added
-     */
     private fun setupSaveButton() {
-
         val name = binding.vaccineNameEditText.text.toString().trim()
         val description = binding.descriptionEditText.text.toString().trim()
         val route = binding.routeAutoCompleteTextView.text.toString().trim()
@@ -90,13 +78,11 @@ class AddVaccinePage : AppCompatActivity() {
         val eligibleAge = binding.eligibleAgeEditText.text.toString().trim()
         val ageUnit = binding.ageUnitSpinner.selectedItem.toString()
 
-        val hasDosage = binding.hasDosageCheckBox.isChecked
-
         if (name.isEmpty() || description.isEmpty() || route.isEmpty()) {
-            Toast.makeText(this, "Please fill out all required fields.", Toast.LENGTH_SHORT)
-                .show()
+            Toast.makeText(this, "Please fill out all required fields.", Toast.LENGTH_SHORT).show()
             return
         }
+
         val vaccine = Vaccine(
             id = null,
             name = name,
@@ -106,44 +92,17 @@ class AddVaccinePage : AppCompatActivity() {
             sideEffects = sideEffects,
             eligibleAge = eligibleAge.toDouble(),
             ageUnit = ageUnit,
-            hasDosage = hasDosage
+            hasDosage = true
         )
 
-
-
-        if (hasDosage) {
-            val intent = Intent(this@AddVaccinePage, AddDosagePage::class.java)
-            intent.putExtra("vaccineName", vaccine.name)
-            intent.putExtra("vaccineDescription", vaccine.description)
-            intent.putExtra("vaccineRoute", vaccine.route)
-            intent.putExtra("vaccineType", vaccine.type)
-            intent.putExtra("vaccineSideEffects", vaccine.sideEffects)
-            intent.putExtra("vaccineEligibleAge", vaccine.eligibleAge)
-            intent.putExtra("vaccineAgeUnit", vaccine.ageUnit)
-
-            startActivity(intent)
-        } else {
-            /** database call form the databaseservice class to add a vaccine
-             *
-             */
-            databaseServices.addVaccine(vaccine, object : InterfaceClass.StatusCallbackWithId {
-                override fun onSuccess(message: String, id: String) {
-                    Toast.makeText(this@AddVaccinePage, message, Toast.LENGTH_SHORT)
-                        .show()
-
-                    finish()
-                }
-
-                override fun onFailure(error: String) {
-                    Toast.makeText(this@AddVaccinePage, error, Toast.LENGTH_SHORT).show()
-                }
-
-
-            })
-
-
-        }
-
-
+        val intent = Intent(this@AddVaccinePage, AddDosagePage::class.java)
+        intent.putExtra("vaccineName", vaccine.name)
+        intent.putExtra("vaccineDescription", vaccine.description)
+        intent.putExtra("vaccineRoute", vaccine.route)
+        intent.putExtra("vaccineType", vaccine.type)
+        intent.putExtra("vaccineSideEffects", vaccine.sideEffects)
+        intent.putExtra("vaccineEligibleAge", vaccine.eligibleAge)
+        intent.putExtra("vaccineAgeUnit", vaccine.ageUnit)
+        startActivity(intent)
     }
 }
