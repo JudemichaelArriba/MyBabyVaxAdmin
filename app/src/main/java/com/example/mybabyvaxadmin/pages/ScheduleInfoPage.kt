@@ -17,6 +17,9 @@ import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class ScheduleInfoPage : AppCompatActivity() {
 
@@ -52,6 +55,36 @@ class ScheduleInfoPage : AppCompatActivity() {
 
 
         loadBabies(babyIds)
+
+
+
+
+
+
+
+
+        binding.btnGenerateQR.isEnabled = false
+        binding.btnGenerateQR.alpha = 0.5f
+
+        if (date != null) {
+            try {
+                val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val parsedDate = inputFormat.parse(date)
+                val todayDate = inputFormat.parse(inputFormat.format(Date()))
+
+                if (parsedDate?.time == todayDate?.time) {
+                    binding.btnGenerateQR.isEnabled = true
+                    binding.btnGenerateQR.alpha = 1f
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+
+
+
+
 
 
         binding.btnGenerateQR.setOnClickListener {
